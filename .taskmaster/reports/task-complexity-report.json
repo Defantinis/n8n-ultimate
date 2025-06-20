@@ -1,12 +1,12 @@
 {
 	"meta": {
-		"generatedAt": "2025-06-20T05:38:15.019Z",
-		"tasksAnalyzed": 7,
-		"totalTasks": 10,
+		"generatedAt": "2025-06-20T14:00:41.845Z",
+		"tasksAnalyzed": 1,
+		"totalTasks": 11,
 		"analysisCount": 7,
 		"thresholdScore": 5,
 		"projectName": "Taskmaster",
-		"usedResearch": false
+		"usedResearch": true
 	},
 	"complexityAnalysis": [
 		{
@@ -24,14 +24,6 @@
 			"recommendedSubtasks": 2,
 			"expansionPrompt": "Develop a knowledge management system to capture and utilize learnings from the project.",
 			"reasoning": "Medium complexity due to new dependencies and requirements."
-		},
-		{
-			"taskId": 7,
-			"taskTitle": "Implement Generation Tools",
-			"complexityScore": 9,
-			"recommendedSubtasks": 4,
-			"expansionPrompt": "Develop generation tools using Node.js/TypeScript, Ollama, and Task-master to create new n8n workflows.",
-			"reasoning": "High complexity due to complex implementation requirements."
 		},
 		{
 			"taskId": 8,
@@ -64,6 +56,14 @@
 			"recommendedSubtasks": 3,
 			"expansionPrompt": "Break down this task with a focus on test and refine.",
 			"reasoning": "Automatically added due to missing analysis in AI response."
+		},
+		{
+			"taskId": 7,
+			"taskTitle": "Create Community Node Support Framework",
+			"complexityScore": 8,
+			"recommendedSubtasks": 4,
+			"expansionPrompt": "Design framework architecture, implement node integration, test and refine framework functionality, document API endpoints.",
+			"reasoning": "Medium priority task with multiple components requiring design, implementation, testing, and documentation."
 		}
 	]
 }
