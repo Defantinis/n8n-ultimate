@@ -1,0 +1,69 @@
+{
+	"meta": {
+		"generatedAt": "2025-06-20T05:38:15.019Z",
+		"tasksAnalyzed": 7,
+		"totalTasks": 10,
+		"analysisCount": 7,
+		"thresholdScore": 5,
+		"projectName": "Taskmaster",
+		"usedResearch": false
+	},
+	"complexityAnalysis": [
+		{
+			"taskId": 4,
+			"taskTitle": "Develop Core AI Agents",
+			"complexityScore": 8,
+			"recommendedSubtasks": 3,
+			"expansionPrompt": "Analyze existing n8n workflow JSON structure and document its structure.",
+			"reasoning": "High complexity due to multiple subtasks with varying dependencies."
+		},
+		{
+			"taskId": 5,
+			"taskTitle": "Integrate Knowledge Management System",
+			"complexityScore": 6,
+			"recommendedSubtasks": 2,
+			"expansionPrompt": "Develop a knowledge management system to capture and utilize learnings from the project.",
+			"reasoning": "Medium complexity due to new dependencies and requirements."
+		},
+		{
+			"taskId": 7,
+			"taskTitle": "Implement Generation Tools",
+			"complexityScore": 9,
+			"recommendedSubtasks": 4,
+			"expansionPrompt": "Develop generation tools using Node.js/TypeScript, Ollama, and Task-master to create new n8n workflows.",
+			"reasoning": "High complexity due to complex implementation requirements."
+		},
+		{
+			"taskId": 8,
+			"taskTitle": "Test and Refine",
+			"complexityScore": 7,
+			"recommendedSubtasks": 3,
+			"expansionPrompt": "Conduct thorough testing and refinement of the system to ensure it meets the project's requirements.",
+			"reasoning": "Medium complexity due to multiple subtasks with varying dependencies."
+		},
+		{
+			"taskId": 6,
+			"taskTitle": "Implement Workflow Validation",
+			"complexityScore": 5,
+			"recommendedSubtasks": 3,
+			"expansionPrompt": "Break down this task with a focus on implement workflow validation.",
+			"reasoning": "Automatically added due to missing analysis in AI response."
+		},
+		{
+			"taskId": 9,
+			"taskTitle": "Optimize Performance",
+			"complexityScore": 5,
+			"recommendedSubtasks": 3,
+			"expansionPrompt": "Break down this task with a focus on optimize performance.",
+			"reasoning": "Automatically added due to missing analysis in AI response."
+		},
+		{
+			"taskId": 10,
+			"taskTitle": "Test and Refine",
+			"complexityScore": 5,
+			"recommendedSubtasks": 3,
+			"expansionPrompt": "Break down this task with a focus on test and refine.",
+			"reasoning": "Automatically added due to missing analysis in AI response."
+		}
+	]
+}

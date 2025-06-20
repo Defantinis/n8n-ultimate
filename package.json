@@ -1,0 +1,24 @@
+{
+  "name": "n8n-ultimate",
+  "version": "1.0.0",
+  "description": "AI-powered system to transform ideas into n8n workflows",
+  "main": "dist/index.js",
+  "type": "module",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "npm run build && node dist/test-parser.js",
+    "test-parser": "npm run build && node dist/test-parser.js",
+    "dev": "tsc --watch"
+  },
+  "keywords": ["n8n", "workflow", "automation", "ai", "parser"],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "task-master-ai": "^0.17.1",
+    "typescript": "^5.0.0",
+    "@types/node": "^20.0.0"
+  }
+}

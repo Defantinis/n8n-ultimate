@@ -1,0 +1,471 @@
+<context>
+# Overview  
+Our project aims to create an AI-powered system that can seamlessly transform any idea into a functional n8n workflow. The system addresses the complexity barrier that prevents users from fully leveraging n8n's automation capabilities. By using a multi-agent AI approach combined with human-in-the-loop workflow enhancement, we enable both technical and non-technical users to rapidly prototype, iterate on, and deploy sophisticated automation workflows.
+
+The target users include:
+- Developers who want to quickly prototype automation ideas
+- Business users who understand processes but struggle with n8n's technical complexity
+- Teams that need to rapidly iterate on workflow concepts
+- Anyone who wants to transform manual processes into automated n8n workflows
+
+The value proposition is reducing the time from "idea" to "working n8n workflow" from hours/days to minutes, while ensuring the output is production-ready and follows n8n best practices.
+
+# Core Features  
+## 1. Multi-Agent Workflow Generation
+- **IdeaRefiner Agent**: Transforms raw user prompts into structured, unambiguous specifications
+- **WorkflowPlanner Agent**: Creates logical, platform-agnostic workflow blueprints
+- **N8nExpert Agent**: Translates blueprints into valid n8n JSON with proper node configurations
+- **WorkflowValidator Agent**: Ensures generated workflows are syntactically correct and follow best practices
+
+## 2. Cursor-Integrated Development Experience
+- **Seamless Chat Interface**: User describes ideas in natural language through Cursor
+- **Expert AI Assistant**: AI has deep knowledge of n8n patterns, nodes, and best practices
+- **Instant Workflow Generation**: From idea description to ready-to-import JSON in minutes
+- **Iterative Refinement**: Support for multiple rounds of enhancement through conversation
+
+## 3. Hybrid Development Approach (Transitional)
+- **Enhancement Mode (Initial)**: Start with skeleton workflows to learn compatibility patterns
+- **Greenfield Mode (Target)**: Generate complete workflows from scratch based on natural language descriptions
+- **Learning-Driven Evolution**: System improves from Enhancement Mode learnings to enable robust Greenfield generation
+
+## 4. Comprehensive Knowledge Management
+- **Learnings Repository**: Centralized documentation of compatibility issues, solutions, and best practices
+- **Dynamic Agent Improvement**: Agents continuously improve based on documented learnings
+- **Error Pattern Recognition**: System learns from failures to prevent recurring issues
+
+## 5. Quality Assurance & Testing
+- **Automated Validation**: Real-time checking of workflow syntax and structure
+- **Golden Dataset Testing**: Regression testing against known good prompt-workflow pairs
+- **CI/CD Integration**: Automated testing pipeline for system reliability
+
+# User Experience  
+## Primary User Personas
+1. **The Rapid Prototyper**: Developer who wants to quickly test automation concepts
+2. **The Business Automator**: Non-technical user with clear process knowledge but limited n8n expertise
+3. **The Workflow Enhancer**: User with existing workflows who wants AI-assisted improvements
+
+## Key User Flows
+### Greenfield Workflow Creation
+1. User provides natural language description of desired automation
+2. IdeaRefiner clarifies and structures the requirements
+3. WorkflowPlanner creates logical blueprint
+4. N8nExpert generates n8n JSON
+5. WorkflowValidator ensures quality
+6. User receives ready-to-import workflow file
+
+### Enhancement Mode (Primary Development Focus)
+1. User creates basic workflow skeleton in n8n and exports JSON
+2. User places skeleton in `workflows/skeletons/` directory
+3. User provides enhancement instructions via natural language
+4. System parses existing workflow and applies modifications
+5. User receives enhanced workflow ready for import
+
+## UI/UX Considerations
+- **Primary Interface**: Cursor chat environment with AI assistant
+- **User Experience**: User describes idea in natural language, AI assistant handles all technical implementation
+- **No Separate UI Needed**: All interaction happens through existing Cursor interface
+- **Expert AI Guidance**: AI assistant acts as n8n expert, knowing where to find information and how to build workflows
+- Clear error messages with actionable guidance
+- Progress indicators for AI processing steps
+- Ability to save and resume workflow generation sessions
+
+# Technical Architecture  
+## System Components
+### Core AI Agents (Node.js/TypeScript)
+- Individual agent modules with specific responsibilities
+- Shared communication protocol between agents
+- Plugin architecture for extending agent capabilities
+
+### Knowledge Management System
+- Structured markdown files for learnings and best practices
+- Automated parsing and integration into agent decision-making
+- Version control for knowledge evolution
+
+### Workflow Processing Engine
+- JSON parser for n8n workflow structure
+- Node configuration validator
+- Connection integrity checker
+- Expression syntax validator
+
+### Integration Layer
+- Task-master integration for project management
+- Ollama integration for local AI processing
+- Git integration for version control
+- n8n API integration (future: direct workflow testing)
+
+## Data Models
+### Workflow Specification
+```json
+{
+  "id": "unique_identifier",
+  "title": "Human-readable title",
+  "description": "Detailed description",
+  "requirements": {
+    "triggers": [],
+    "actions": [],
+    "data_transformations": [],
+    "integrations": []
+  },
+  "constraints": {
+    "performance": {},
+    "security": {},
+    "compatibility": {}
+  }
+}
+```
+
+### Learning Entry
+```json
+{
+  "id": "unique_identifier",
+  "date": "ISO_date",
+  "problem": "Description of challenge",
+  "investigation": "Steps taken to understand",
+  "solution": "Actionable solution",
+  "implications": "Broader takeaways",
+  "tags": ["n8n", "compatibility", "nodes"]
+}
+```
+
+## APIs and Integrations
+- Ollama API for local AI model communication
+- n8n REST API for workflow validation and testing
+- GitHub API for CI/CD integration
+- File system APIs for workflow and knowledge management
+
+## Infrastructure Requirements
+- Local development environment with Node.js
+- Ollama server for AI model hosting
+- Git repository for version control and collaboration
+- Optional: Docker containers for consistent development environments
+
+# Development Roadmap  
+## Phase 1: Foundation & Discovery (Current)
+### MVP Requirements
+- Project structure with organized documentation
+- Task-master integration for project management
+- Ollama setup with local AI model
+- Basic knowledge management system (LEARNINGS.md)
+- Analysis of n8n workflow JSON structure
+
+### Deliverables
+- Complete project documentation suite
+- Working task-master setup with local AI
+- Initial n8n workflow analysis and documentation
+- Sample workflow collection for testing
+
+## Phase 2: Core Agent Development & Learning
+### MVP Requirements
+- Basic N8nExpert agent that can parse existing workflows
+- Simple WorkflowValidator for syntax checking
+- **Complexity-Ready Architecture**: Design agents to handle branching, error handling, and advanced expressions from the start
+- Enhancement mode: modify existing workflows based on instructions
+- Integration with Cursor environment for seamless user experience
+
+### Deliverables
+- Working Enhancement Mode with skeleton workflow modification
+- **Robust validation for complex workflow patterns**
+- Initial learning entries from development challenges
+- **Cursor-integrated workflow generation capability**
+
+## Phase 3: Advanced Generation & Validation
+### MVP Requirements
+- Full IdeaRefiner and WorkflowPlanner agents
+- **Production-Ready Greenfield Mode**: Generate complete, complex workflows from natural language
+- Comprehensive WorkflowValidator with best practices checking
+- **Advanced Pattern Recognition**: Support for complex n8n patterns, branching, loops, error handling
+- Automated testing pipeline
+
+### Deliverables
+- Complete multi-agent system capable of handling complex workflow requirements
+- Golden dataset of test cases including complex scenarios
+- **Seamless idea-to-workflow generation through Cursor interface**
+- Production-ready workflow generation with minimal human intervention
+
+## Phase 4: Optimization & Advanced Features
+### MVP Requirements
+- **Performance Optimization**: Sub-10-minute idea-to-workflow generation
+- Advanced error handling and recovery
+- **Future-Proofing**: Architecture ready for community node integration
+- Comprehensive learning system that continuously improves workflow quality
+
+### Deliverables
+- **Optimized Cursor-integrated experience**
+- **Community node support framework (for future implementation)**
+- Advanced learning and adaptation capabilities
+- Comprehensive documentation and knowledge base
+
+## Success Metrics
+- **Speed**: Idea to working workflow through Cursor interface (target: under 10 minutes, measured through development iterations)
+- **Quality**: Generated workflows import successfully into n8n without errors
+- **Complexity Handling**: System can generate workflows with branching, error handling, and advanced expressions
+- **Learning**: System improves over time with documented solutions
+- **User Experience**: Seamless interaction through Cursor with minimal technical knowledge required
+
+# Logical Dependency Chain
+## Foundation First (Phase 1)
+1. **Project Infrastructure**: Task management, documentation, AI setup
+2. **n8n Analysis**: Deep understanding of workflow structure and common patterns
+3. **Knowledge System**: Framework for capturing and utilizing learnings
+
+## Quick Wins (Phase 2)
+4. **Enhancement Mode**: Start with skeleton workflows to solve compatibility early
+5. **Basic Validation**: Ensure generated workflows are syntactically correct
+6. **Learning Integration**: Capture and apply insights from early development
+
+## Full Capability (Phase 3)
+7. **Complete Agent System**: All four agents working together
+8. **Greenfield Generation**: Create workflows from natural language prompts
+9. **Automated Testing**: Ensure system reliability and prevent regressions
+
+## Polish & Scale (Phase 4)
+10. **User Experience**: Make the system accessible and user-friendly
+11. **Advanced Features**: Community nodes, feedback loops, advanced error handling
+12. **Documentation & Adoption**: Enable others to use and contribute to the system
+
+# Risks and Mitigations  
+## Technical Challenges
+**Risk**: n8n workflow complexity and compatibility issues
+**Mitigation**: Start with Enhancement Mode using human-created skeletons; build comprehensive knowledge base of solutions
+
+**Risk**: AI model limitations in understanding n8n specifics
+**Mitigation**: Use local Ollama models with fine-tuning potential; implement robust validation and error handling
+
+**Risk**: Workflow validation complexity
+**Mitigation**: Incremental validation approach; start with syntax, add semantic validation over time
+
+## MVP Definition and Scope
+**Risk**: Over-engineering the initial solution
+**Mitigation**: Focus on Enhancement Mode first; prioritize working workflows over perfect workflows
+
+**Risk**: Underestimating n8n complexity
+**Mitigation**: Extensive analysis phase; continuous learning documentation; iterative improvement
+
+## Resource and Development Constraints
+**Risk**: AI processing time and local resource limitations
+**Mitigation**: Use efficient local models; implement caching and optimization strategies
+
+**Risk**: Knowledge management becoming unwieldy
+**Mitigation**: Structured documentation approach; automated integration into agent decision-making
+
+# Appendix  
+## Research Findings
+- n8n workflows use specific JSON structure with nodes, connections, and metadata
+- Common node types include triggers, actions, data transformers, and conditionals
+- Workflow compatibility depends on node versions, credential setup, and expression syntax
+- Community has extensive template library that can serve as learning examples
+
+## Technical Specifications
+- Node.js/TypeScript for agent development
+- Ollama with Llama 3.2 for local AI processing
+- Task-master for project management and task tracking
+- Git for version control and collaboration
+- Markdown for documentation and knowledge management
+
+## Success Metrics
+- Time reduction: Idea to working workflow in under 10 minutes
+- Quality: Generated workflows import successfully into n8n without errors
+- Learning: System improves over time with documented solutions
+- Usability: Non-technical users can successfully create basic workflows
+</context>
+
+<PRD>
+# Technical Architecture  
+## System Components
+### Core AI Agents (Node.js/TypeScript)
+- Individual agent modules with specific responsibilities
+- Shared communication protocol between agents
+- Plugin architecture for extending agent capabilities
+
+### Knowledge Management System
+- Structured markdown files for learnings and best practices
+- Automated parsing and integration into agent decision-making
+- Version control for knowledge evolution
+
+### Workflow Processing Engine
+- JSON parser for n8n workflow structure
+- Node configuration validator
+- Connection integrity checker
+- Expression syntax validator
+
+### Integration Layer
+- Task-master integration for project management
+- Ollama integration for local AI processing
+- Git integration for version control
+- n8n API integration (future: direct workflow testing)
+
+## Data Models
+### Workflow Specification
+```json
+{
+  "id": "unique_identifier",
+  "title": "Human-readable title",
+  "description": "Detailed description",
+  "requirements": {
+    "triggers": [],
+    "actions": [],
+    "data_transformations": [],
+    "integrations": []
+  },
+  "constraints": {
+    "performance": {},
+    "security": {},
+    "compatibility": {}
+  }
+}
+```
+
+### Learning Entry
+```json
+{
+  "id": "unique_identifier",
+  "date": "ISO_date",
+  "problem": "Description of challenge",
+  "investigation": "Steps taken to understand",
+  "solution": "Actionable solution",
+  "implications": "Broader takeaways",
+  "tags": ["n8n", "compatibility", "nodes"]
+}
+```
+
+## APIs and Integrations
+- Ollama API for local AI model communication
+- n8n REST API for workflow validation and testing
+- GitHub API for CI/CD integration
+- File system APIs for workflow and knowledge management
+
+## Infrastructure Requirements
+- Local development environment with Node.js
+- Ollama server for AI model hosting
+- Git repository for version control and collaboration
+- Optional: Docker containers for consistent development environments
+
+# Development Roadmap  
+## Phase 1: Foundation & Discovery (Current)
+### MVP Requirements
+- Project structure with organized documentation
+- Task-master integration for project management
+- Ollama setup with local AI model
+- Basic knowledge management system (LEARNINGS.md)
+- Analysis of n8n workflow JSON structure
+
+### Deliverables
+- Complete project documentation suite
+- Working task-master setup with local AI
+- Initial n8n workflow analysis and documentation
+- Sample workflow collection for testing
+
+## Phase 2: Core Agent Development & Learning
+### MVP Requirements
+- Basic N8nExpert agent that can parse existing workflows
+- Simple WorkflowValidator for syntax checking
+- **Complexity-Ready Architecture**: Design agents to handle branching, error handling, and advanced expressions from the start
+- Enhancement mode: modify existing workflows based on instructions
+- Integration with Cursor environment for seamless user experience
+
+### Deliverables
+- Working Enhancement Mode with skeleton workflow modification
+- **Robust validation for complex workflow patterns**
+- Initial learning entries from development challenges
+- **Cursor-integrated workflow generation capability**
+
+## Phase 3: Advanced Generation & Validation
+### MVP Requirements
+- Full IdeaRefiner and WorkflowPlanner agents
+- **Production-Ready Greenfield Mode**: Generate complete, complex workflows from natural language
+- Comprehensive WorkflowValidator with best practices checking
+- **Advanced Pattern Recognition**: Support for complex n8n patterns, branching, loops, error handling
+- Automated testing pipeline
+
+### Deliverables
+- Complete multi-agent system capable of handling complex workflow requirements
+- Golden dataset of test cases including complex scenarios
+- **Seamless idea-to-workflow generation through Cursor interface**
+- Production-ready workflow generation with minimal human intervention
+
+## Phase 4: Optimization & Advanced Features
+### MVP Requirements
+- **Performance Optimization**: Sub-10-minute idea-to-workflow generation
+- Advanced error handling and recovery
+- **Future-Proofing**: Architecture ready for community node integration
+- Comprehensive learning system that continuously improves workflow quality
+
+### Deliverables
+- **Optimized Cursor-integrated experience**
+- **Community node support framework (for future implementation)**
+- Advanced learning and adaptation capabilities
+- Comprehensive documentation and knowledge base
+
+## Success Metrics
+- **Speed**: Idea to working workflow through Cursor interface (target: under 10 minutes, measured through development iterations)
+- **Quality**: Generated workflows import successfully into n8n without errors
+- **Complexity Handling**: System can generate workflows with branching, error handling, and advanced expressions
+- **Learning**: System improves over time with documented solutions
+- **User Experience**: Seamless interaction through Cursor with minimal technical knowledge required
+
+# Logical Dependency Chain
+## Foundation First (Phase 1)
+1. **Project Infrastructure**: Task management, documentation, AI setup
+2. **n8n Analysis**: Deep understanding of workflow structure and common patterns
+3. **Knowledge System**: Framework for capturing and utilizing learnings
+
+## Quick Wins (Phase 2)
+4. **Enhancement Mode**: Start with skeleton workflows to solve compatibility early
+5. **Basic Validation**: Ensure generated workflows are syntactically correct
+6. **Learning Integration**: Capture and apply insights from early development
+
+## Full Capability (Phase 3)
+7. **Complete Agent System**: All four agents working together
+8. **Greenfield Generation**: Create workflows from natural language prompts
+9. **Automated Testing**: Ensure system reliability and prevent regressions
+
+## Polish & Scale (Phase 4)
+10. **User Experience**: Make the system accessible and user-friendly
+11. **Advanced Features**: Community nodes, feedback loops, advanced error handling
+12. **Documentation & Adoption**: Enable others to use and contribute to the system
+
+# Risks and Mitigations  
+## Technical Challenges
+**Risk**: n8n workflow complexity and compatibility issues
+**Mitigation**: Start with Enhancement Mode using human-created skeletons; build comprehensive knowledge base of solutions
+
+**Risk**: AI model limitations in understanding n8n specifics
+**Mitigation**: Use local Ollama models with fine-tuning potential; implement robust validation and error handling
+
+**Risk**: Workflow validation complexity
+**Mitigation**: Incremental validation approach; start with syntax, add semantic validation over time
+
+## MVP Definition and Scope
+**Risk**: Over-engineering the initial solution
+**Mitigation**: Focus on Enhancement Mode first; prioritize working workflows over perfect workflows
+
+**Risk**: Underestimating n8n complexity
+**Mitigation**: Extensive analysis phase; continuous learning documentation; iterative improvement
+
+## Resource and Development Constraints
+**Risk**: AI processing time and local resource limitations
+**Mitigation**: Use efficient local models; implement caching and optimization strategies
+
+**Risk**: Knowledge management becoming unwieldy
+**Mitigation**: Structured documentation approach; automated integration into agent decision-making
+
+# Appendix  
+## Research Findings
+- n8n workflows use specific JSON structure with nodes, connections, and metadata
+- Common node types include triggers, actions, data transformers, and conditionals
+- Workflow compatibility depends on node versions, credential setup, and expression syntax
+- Community has extensive template library that can serve as learning examples
+
+## Technical Specifications
+- Node.js/TypeScript for agent development
+- Ollama with Llama 3.2 for local AI processing
+- Task-master for project management and task tracking
+- Git for version control and collaboration
+- Markdown for documentation and knowledge management
+
+## Success Metrics
+- Time reduction: Idea to working workflow in under 10 minutes
+- Quality: Generated workflows import successfully into n8n without errors
+- Learning: System improves over time with documented solutions
+- Usability: Non-technical users can successfully create basic workflows
+</PRD> 
