@@ -13,7 +13,7 @@ import {
   AIIntegrationManagerClass,
   AIUtils
 } from './ai-integration-patterns';
-import { N8nWorkflow, N8nNode } from '../types/n8n-workflow';
+import { N8nWorkflow } from '../types/n8n-workflow';
 
 /**
  * Test Configuration
@@ -311,7 +311,7 @@ export function testConfigurationHandling(): void {
 /**
  * Run All Tests
  */
-export function runAllAIIntegrationTests(): void {
+export function runAllAIIntegrationTests(): boolean {
   console.log('🚀 Running All AI Integration Pattern Tests...\n');
   
   try {
