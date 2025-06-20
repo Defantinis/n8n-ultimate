@@ -682,7 +682,7 @@ export class NodeCompatibilityValidator {
     }
 
     // Analyze results
-    for (const [nodeId, nodeResultsArray] of nodeResults.entries()) {
+    for (const [nodeId, nodeResultsArray] of Array.from(nodeResults.entries())) {
       const hasErrors = nodeResultsArray.some(r => r.severity === 'error' && !r.valid);
       const hasWarnings = nodeResultsArray.some(r => r.severity === 'warning');
 
@@ -707,7 +707,7 @@ export class NodeCompatibilityValidator {
     return {
       summary,
       details: results,
-      recommendations: [...new Set(recommendations)] // Remove duplicates
+      recommendations: Array.from(new Set(recommendations)) // Remove duplicates
     };
   }
 }

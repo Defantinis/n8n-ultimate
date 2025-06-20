@@ -506,7 +506,7 @@ export const WorkflowSchemaUtils = {
       }
     }
 
-    return [...new Set(connected)];
+    return Array.from(new Set(connected));
   },
 
   /**

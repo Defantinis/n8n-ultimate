@@ -317,7 +317,7 @@ export class ConnectionValidator {
     }
 
     // Report duplicate connections
-    for (const [connectionKey, count] of connectionMap.entries()) {
+    for (const [connectionKey, count] of Array.from(connectionMap.entries())) {
       if (count > 1) {
         const [source, target] = connectionKey.split('->');
         results.push({
