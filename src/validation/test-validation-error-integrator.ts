@@ -41,13 +41,11 @@ export class ValidationErrorIntegratorTestData {
       connections: {
         'start': {
           main: [
-            [
-              {
-                node: 'http',
-                type: 'main',
-                index: 0
-              }
-            ]
+            {
+              node: 'http',
+              type: 'main',
+              index: 0
+            }
           ]
         }
       },
@@ -116,17 +114,17 @@ export class ValidationErrorIntegratorTestData {
       connections: {
         'start': {
           main: [
-            [{ node: 'http1', type: 'main', index: 0 }]
+            { node: 'http1', type: 'main', index: 0 }
           ]
         },
         'http1': {
           main: [
-            [{ node: 'set', type: 'main', index: 0 }]
+            { node: 'set', type: 'main', index: 0 }
           ]
         },
         'set': {
           main: [
-            [{ node: 'http2', type: 'main', index: 0 }]
+            { node: 'http2', type: 'main', index: 0 }
           ]
         }
       },
@@ -205,7 +203,7 @@ export class ValidationErrorIntegratorTest {
   private testResults: Array<{ test: string; passed: boolean; error?: string }> = [];
 
   constructor() {
-    this.integrator = new ValidationErrorIntegratorTestData().createValidationErrorIntegrator();
+    this.integrator = ValidationErrorIntegratorTestDataExtended.createValidationErrorIntegrator();
     this.setupEventListeners();
   }
 

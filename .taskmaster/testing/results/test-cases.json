@@ -1,0 +1,13 @@
+[
+  {
+    "id": "test-1750511620077-scraper",
+    "name": "Enhanced n8n Scraper Workflow - Real-World Test",
+    "workflowPath": "workflows/enhanced/enhanced-n8n-scraper.json",
+    "workflowType": "scraper",
+    "description": "Testing our performance-optimized n8n workflow scraper with enhanced error handling, validation, and retry logic",
+    "expectedOutcome": "Successfully scrape n8n workflows from the community page with minimal manual configuration required",
+    "testingNotes": "This is our first test case to validate the real-world testing framework and identify manual configuration requirements",
+    "status": "pending",
+    "createdAt": "2025-06-21T13:13:40.077Z"
+  }
+]

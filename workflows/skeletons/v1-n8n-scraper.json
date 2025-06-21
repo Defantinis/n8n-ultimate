@@ -1,0 +1,311 @@
+{
+  "name": "My workflow 2",
+  "nodes": [
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "error-check",
+              "leftValue": "={{ $json.error }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "isEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        460,
+        200
+      ],
+      "id": "e610042c-05c2-4fd3-815c-cb633a10919d",
+      "name": "Check API Success"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Clean and validate extracted data\nconst items = $input.all();\nconst cleanedItems = [];\n\nfor (const item of items) {\n  const data = item.json;\n  \n  // Validate required fields\n  if (data.workflowUrl && data.title) {\n    // Clean the URL (make it absolute if relative)\n    let url = data.workflowUrl;\n    if (url.startsWith('/')) {\n      url = 'https://n8n.io' + url;\n    }\n    \n    // Clean and format the data\n    const cleanedItem = {\n      url: url,\n      title: data.title.trim(),\n      category: data.category ? data.category.trim() : 'Uncategorized',\n      description: data.description ? data.description.trim() : '',\n      extractedAt: new Date().toISOString(),\n      source: 'n8n.io'\n    };\n    \n    cleanedItems.push({ json: cleanedItem });\n  }\n}\n\nreturn cleanedItems;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        860,
+        200
+      ],
+      "id": "bf379a15-d141-4ef2-943a-bbfb7ab5d43c",
+      "name": "Process & Clean Data"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.url }}",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1060,
+        200
+      ],
+      "id": "f40d9133-6ec4-4e0a-b126-02460d12c2d6",
+      "name": "Fetch Individual Workflows"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "success-check",
+              "leftValue": "={{ $json.error }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "isEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1260,
+        200
+      ],
+      "id": "3c428a89-00ef-46c8-aeaa-615e2f70d2de",
+      "name": "Check Workflow Fetch Success"
+    },
+    {
+      "parameters": {
+        "fileName": "n8n-workflows-{{ new Date().toISOString().split('T')[0] }}.json",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.writeBinaryFile",
+      "typeVersion": 1,
+      "position": [
+        1460,
+        200
+      ],
+      "id": "b0fadfda-5cbe-4bc4-9f0e-c919274f7735",
+      "name": "Save Results to File"
+    },
+    {
+      "parameters": {
+        "subject": "n8n Workflow Extraction Complete",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        1660,
+        200
+      ],
+      "id": "b1421c51-bdbd-44ac-ad83-4500cf27241c",
+      "name": "Send Completion Email",
+      "webhookId": "49de628c-2398-4539-836d-a6f9119069ac"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        460,
+        460
+      ],
+      "id": "09f72dbb-bd1e-4652-84e2-403fa85649ca",
+      "name": "Send Error Email - API Failure",
+      "webhookId": "f6941b1a-9a5c-46bd-b0cc-bbe1d8ce3eca"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        1260,
+        440
+      ],
+      "id": "d7d60b43-8b97-4f70-8ade-525ffbb5c423",
+      "name": "Send Warning Email - Partial Failure",
+      "webhookId": "b1fdfbee-05e6-4d54-831b-834955f1a835"
+    },
+    {
+      "parameters": {
+        "url": "https://n8n.io/workflows/",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        260,
+        200
+      ],
+      "id": "050fc15f-0256-47eb-863e-436d37089bc4",
+      "name": "Get Workflow List Page1"
+    },
+    {
+      "parameters": {
+        "operation": "extractHtmlContent",
+        "extractionValues": {
+          "values": [
+            {
+              "key": "workflowUrl",
+              "cssSelector": "a.workflow-card_link-block",
+              "returnValue": "attribute",
+              "attribute": "href"
+            },
+            {
+              "key": "category",
+              "cssSelector": ".workflow-card_category-tag_text"
+            },
+            {
+              "key": "title",
+              "cssSelector": "h3.workflow-card_title"
+            },
+            {
+              "key": "description",
+              "cssSelector": ".workflow-card_description"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.html",
+      "typeVersion": 1.2,
+      "position": [
+        660,
+        200
+      ],
+      "id": "8077b861-a3b4-4c85-afad-78fc1bb152cd",
+      "name": "Extract URLs & Categories1"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Check API Success": {
+      "main": [
+        [
+          {
+            "node": "Extract URLs & Categories1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Error Email - API Failure",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process & Clean Data": {
+      "main": [
+        [
+          {
+            "node": "Fetch Individual Workflows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Individual Workflows": {
+      "main": [
+        [
+          {
+            "node": "Check Workflow Fetch Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Workflow Fetch Success": {
+      "main": [
+        [
+          {
+            "node": "Save Results to File",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Warning Email - Partial Failure",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Results to File": {
+      "main": [
+        [
+          {
+            "node": "Send Completion Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Workflow List Page1": {
+      "main": [
+        [
+          {
+            "node": "Check API Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract URLs & Categories1": {
+      "main": [
+        [
+          {
+            "node": "Process & Clean Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "eb767507-0cc8-4c10-b6e6-49fb3691ff3e",
+  "meta": {
+    "instanceId": "b0d7e96a419793923052cce83491123b156aedf3b732f558d517d7aca045355d"
+  },
+  "id": "5fmPxnru4M68rnQq",
+  "tags": []
+}

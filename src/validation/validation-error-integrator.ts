@@ -547,7 +547,7 @@ export class ValidationErrorIntegrator extends EventEmitter {
     const startTime = performance.now();
     
     try {
-      const validationResults = this.connectionValidator.validateConnections(workflow);
+      const validationResults = this.connectionValidator.validateWorkflowConnections(workflow);
       
       result.connectionValidation = {
         valid: validationResults.every(r => r.valid),
@@ -577,7 +577,7 @@ export class ValidationErrorIntegrator extends EventEmitter {
     const startTime = performance.now();
     
     try {
-      const validationResults = this.nodeCompatibilityValidator.validateNodeCompatibility(workflow);
+      const validationResults = this.nodeCompatibilityValidator.validateWorkflowNodeCompatibility(workflow);
       
       result.nodeCompatibilityValidation = {
         valid: validationResults.every(r => r.valid),

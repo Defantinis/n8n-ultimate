@@ -5,6 +5,7 @@ import { NodeFactory } from './node-factory.js';
 import { ConnectionBuilder } from './connection-builder.js';
 import { PositionCalculator } from '../utils/position-calculator.js';
 import { AIAgent } from '../ai-agents/ai-agent.js';
+import { memoryManager } from '../performance/memory-manager.js';
 
 /**
  * Main workflow generator that creates n8n workflows from user requirements
@@ -28,32 +29,53 @@ export class WorkflowGenerator {
    * Generate a complete n8n workflow from user requirements
    */
   async generateWorkflow(requirements: WorkflowRequirements): Promise<GeneratedWorkflow> {
+    const workflowId = randomUUID();
+    
     try {
+      // Create memory context for this workflow generation
+      const memoryContext = memoryManager.createWorkflowContext(workflowId);
+      
       // Step 1: Analyze requirements using AI
       const analysis = await this.aiAgent.analyzeRequirements(requirements);
+      memoryManager.registerObject(workflowId, 'analysis', analysis);
+      memoryManager.updateWorkflowContext(workflowId);
       
       // Step 2: Plan the workflow structure
       const plan = await this.aiAgent.planWorkflow(analysis);
+      memoryManager.registerObject(workflowId, 'plan', plan);
+      memoryManager.updateWorkflowContext(workflowId);
       
       // Step 3: Generate nodes based on the plan
-      const nodes = await this.generateNodes(plan);
+      const nodes = await this.generateNodes(plan, workflowId);
+      memoryManager.registerObject(workflowId, 'nodes', nodes);
+      memoryManager.updateWorkflowContext(workflowId);
       
       // Step 4: Create connections between nodes
       const connections = this.connectionBuilder.buildConnections(nodes, plan.flow);
+      memoryManager.registerObject(workflowId, 'connections', connections);
+      memoryManager.updateWorkflowContext(workflowId);
       
       // Step 5: Calculate positions for visual layout
       const positionedNodes = this.positionCalculator.calculatePositions(nodes, connections);
+      memoryManager.registerObject(workflowId, 'positionedNodes', positionedNodes);
+      memoryManager.updateWorkflowContext(workflowId);
       
       // Step 6: Create the complete workflow
       const workflow = this.createWorkflow(requirements, positionedNodes, connections);
+      memoryManager.registerObject(workflowId, 'workflow', workflow);
+      memoryManager.updateWorkflowContext(workflowId);
       
       // Step 7: Validate the generated workflow
       const parsedWorkflow = await this.parser.parseWorkflow(workflow);
+      memoryManager.registerObject(workflowId, 'parsedWorkflow', parsedWorkflow);
+      memoryManager.updateWorkflowContext(workflowId);
       
       // Step 8: Optimize if needed
       const optimizedWorkflow = await this.optimizeWorkflow(parsedWorkflow, requirements);
+      memoryManager.registerObject(workflowId, 'optimizedWorkflow', optimizedWorkflow);
+      memoryManager.updateWorkflowContext(workflowId);
 
-      return {
+      const result = {
         workflow: optimizedWorkflow.workflow,
         metadata: optimizedWorkflow.metadata,
         validation: optimizedWorkflow.validation,
@@ -64,11 +86,19 @@ export class WorkflowGenerator {
           nodeCount: nodes.length,
           connectionCount: Object.keys(connections).length,
           complexity: optimizedWorkflow.metadata.estimatedComplexity,
-          generatedAt: new Date().toISOString()
+          generatedAt: new Date().toISOString(),
+          memoryUsage: memoryContext.currentMemory.heapUsed - memoryContext.startMemory.heapUsed
         }
       };
 
+      // Clean up memory context
+      await memoryManager.cleanupWorkflowContext(workflowId);
+
+      return result;
+
     } catch (error) {
+      // Ensure cleanup on error
+      await memoryManager.cleanupWorkflowContext(workflowId);
       throw new Error(`Failed to generate workflow: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
@@ -76,12 +106,25 @@ export class WorkflowGenerator {
   /**
    * Generate workflow nodes based on the AI plan
    */
-  private async generateNodes(plan: WorkflowPlan): Promise<N8nNode[]> {
+  private async generateNodes(plan: WorkflowPlan, workflowId?: string): Promise<N8nNode[]> {
     const nodes: N8nNode[] = [];
 
     for (const nodeSpec of plan.nodes) {
       const node = await this.nodeFactory.createNode(nodeSpec);
-      nodes.push(node);
+      
+      // Use memory pool for node objects if workflowId provided
+      if (workflowId) {
+        const pooledNode = memoryManager.getFromPool('nodes', workflowId) as N8nNode;
+        if (pooledNode) {
+          // Copy node properties to pooled object
+          Object.assign(pooledNode, node);
+          nodes.push(pooledNode);
+        } else {
+          nodes.push(node);
+        }
+      } else {
+        nodes.push(node);
+      }
     }
 
     return nodes;
