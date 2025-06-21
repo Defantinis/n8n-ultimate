@@ -1,0 +1,11 @@
+# Task ID: 21
+# Title: Create CLI Usage Guide documenting knowledge-cli.ts and all command-line interfaces. Include examples of common workflows and automation scripts.
+# Status: pending
+# Dependencies: 13, 14
+# Priority: medium
+# Description: Generate detailed documentation for the command-line interface including usage guides, examples, and automation scripts.
+# Details:
+The task involves creating comprehensive documentation for the CLI system in knowledge-cli.ts and other relevant command-line interfaces. This includes explaining how to use each CLI command, providing code examples of common workflows, and detailing automation scripts that leverage these interfaces. The documentation should cover key components such as command structure, options, flags, and arguments. It should also include step-by-step guides on integrating CLI commands into automated processes. For each file (knowledge-cli.ts), detailed explanations of key functions and classes should be provided. Additionally, the documentation must include best practices for using the CLI effectively and troubleshooting common issues.
+
+# Test Strategy:
+The documentation will undergo an internal review by the development team to ensure technical accuracy and completeness. User testing with selected power-users will validate usability and clarity. Functional testing will verify that all CLI commands are properly documented and examples are functional. Integration testing will check how well the CLI integrates with other system components as described in the documentation.

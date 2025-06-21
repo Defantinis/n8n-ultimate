@@ -85,8 +85,9 @@ For each issue, document:
 - **Fix suggestion:**
       - Nodes should be connected from the get-go, it's hard to understand the logic with just copy-pasting unlinked nodes.
       - I will just copy-paste all the console logs:
-         usePushConnection-C1qgSYjB.js:373 [Node: "🚀 Initialize Scraper"] Object
-5fmPxnru4M68rnQq:1 Autofocus processing was blocked because a document already has a focused element.
+
+usePushConnection-C1qgSYjB.js:373 [Node: "🚀 Initialize Scraper"] Object
+:5678/workflow/5fmPxnru4M68rnQq:1 Autofocus processing was blocked because a document already has a focused element.
 index--ag0tEQM.js:2481 TypeError: Cannot read properties of undefined (reading 'singleValue')
     at Proxy.<anonymous> (index--ag0tEQM.js:331574:28)
     at renderComponentRoot (index--ag0tEQM.js:7448:17)
@@ -125,76 +126,18 @@ usePushConnection-C1qgSYjB.js:373 [Node: "🚀 Initialize Scraper"] Object
             
             
            Failed to load resource: the server responded with a status of 500 (Internal Server Error)
-usePushConnection-C1qgSYjB.js:373 [Node: "🚀 Initialize Scraper"] {headers: {…}, method: 'GET', uri: 'https://n8n.io/workflows/', gzip: true, rejectUnauthorized: true, …}
-index--ag0tEQM.js:18025 
+usePushConnection-C1qgSYjB.js:373 [Node: "🚀 Initialize Scraper"] Object
+:5678/rest/workflows/5fmPxnru4M68rnQq/run?partialExecutionVersion=2:1 
             
             
-           POST http://localhost:5678/rest/workflows/5fmPxnru4M68rnQq/run?partialExecutionVersion=2 500 (Internal Server Error)
-dispatchXhrRequest @ index--ag0tEQM.js:18025
-xhr @ index--ag0tEQM.js:17905
-dispatchRequest @ index--ag0tEQM.js:18369
-_request @ index--ag0tEQM.js:18584
-request @ index--ag0tEQM.js:18475
-wrap2 @ index--ag0tEQM.js:16476
-request @ index--ag0tEQM.js:86011
-makeRestApiRequest @ index--ag0tEQM.js:86045
-runWorkflow @ index--ag0tEQM.js:163392
-wrappedAction @ index--ag0tEQM.js:87317
-runWorkflowApi @ index--ag0tEQM.js:300664
-runWorkflow @ index--ag0tEQM.js:300864
-await in runWorkflow
-onRunWorkflowToNode @ NodeView-i5dNh-Et.js:16149
-callWithErrorHandling @ index--ag0tEQM.js:2423
-callWithAsyncErrorHandling @ index--ag0tEQM.js:2430
-emit @ index--ag0tEQM.js:7338
-onRunNode @ NodeView-i5dNh-Et.js:14055
-callWithErrorHandling @ index--ag0tEQM.js:2423
-callWithAsyncErrorHandling @ index--ag0tEQM.js:2430
-emit @ index--ag0tEQM.js:7338
-onRun @ NodeView-i5dNh-Et.js:13531
-callWithErrorHandling @ index--ag0tEQM.js:2423
-callWithAsyncErrorHandling @ index--ag0tEQM.js:2430
-emit @ index--ag0tEQM.js:7338
-executeNode @ NodeView-i5dNh-Et.js:8295
-callWithErrorHandling @ index--ag0tEQM.js:2423
-callWithAsyncErrorHandling @ index--ag0tEQM.js:2430
-invoker @ index--ag0tEQM.js:9598
-usePushConnection-C1qgSYjB.js:373 [Node: "🚀 Initialize Scraper"] {headers: {…}, method: 'GET', uri: 'https://n8n.io/workflows/', gzip: true, rejectUnauthorized: true, …}
+           Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+usePushConnection-C1qgSYjB.js:373 [Node: "🚀 Initialize Scraper"] Object
 usePushConnection-C1qgSYjB.js:373 [Node: "⚡ Process & Enrich Data"] Processing complete: 1/1 valid items
-index--ag0tEQM.js:18025 
+:5678/rest/workflows/5fmPxnru4M68rnQq/run?partialExecutionVersion=2:1 
             
             
-           POST http://localhost:5678/rest/workflows/5fmPxnru4M68rnQq/run?partialExecutionVersion=2 500 (Internal Server Error)
-dispatchXhrRequest @ index--ag0tEQM.js:18025
-xhr @ index--ag0tEQM.js:17905
-dispatchRequest @ index--ag0tEQM.js:18369
-_request @ index--ag0tEQM.js:18584
-request @ index--ag0tEQM.js:18475
-wrap2 @ index--ag0tEQM.js:16476
-request @ index--ag0tEQM.js:86011
-makeRestApiRequest @ index--ag0tEQM.js:86045
-runWorkflow @ index--ag0tEQM.js:163392
-wrappedAction @ index--ag0tEQM.js:87317
-runWorkflowApi @ index--ag0tEQM.js:300664
-runWorkflow @ index--ag0tEQM.js:300864
-await in runWorkflow
-onRunWorkflowToNode @ NodeView-i5dNh-Et.js:16149
-callWithErrorHandling @ index--ag0tEQM.js:2423
-callWithAsyncErrorHandling @ index--ag0tEQM.js:2430
-emit @ index--ag0tEQM.js:7338
-onRunNode @ NodeView-i5dNh-Et.js:14055
-callWithErrorHandling @ index--ag0tEQM.js:2423
-callWithAsyncErrorHandling @ index--ag0tEQM.js:2430
-emit @ index--ag0tEQM.js:7338
-onRun @ NodeView-i5dNh-Et.js:13531
-callWithErrorHandling @ index--ag0tEQM.js:2423
-callWithAsyncErrorHandling @ index--ag0tEQM.js:2430
-emit @ index--ag0tEQM.js:7338
-executeNode @ NodeView-i5dNh-Et.js:8295
-callWithErrorHandling @ index--ag0tEQM.js:2423
-callWithAsyncErrorHandling @ index--ag0tEQM.js:2430
-invoker @ index--ag0tEQM.js:9598
-usePushConnection-C1qgSYjB.js:373 [Node: "🚀 Initialize Scraper"] {headers: {…}, method: 'GET', uri: 'https://n8n.io/workflows/', gzip: true, rejectUnauthorized: true, …}
+           Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+usePushConnection-C1qgSYjB.js:373 [Node: "🚀 Initialize Scraper"] Object
 usePushConnection-C1qgSYjB.js:373 [Node: "⚡ Process & Enrich Data"] Processing complete: 1/1 valid items
 index--ag0tEQM.js:2481 TypeError: Cannot read properties of undefined (reading 'singleValue')
     at Proxy.<anonymous> (index--ag0tEQM.js:331574:28)
@@ -279,35 +222,73 @@ runIfDirty @ index--ag0tEQM.js:823
 callWithErrorHandling @ index--ag0tEQM.js:2423
 flushJobs @ index--ag0tEQM.js:2594
 flushJobs @ index--ag0tEQM.js:2616
-Promise.then
-queueFlush @ index--ag0tEQM.js:2526
-queueJob @ index--ag0tEQM.js:2521
-effect2.scheduler @ index--ag0tEQM.js:6509
-trigger @ index--ag0tEQM.js:813
-endBatch @ index--ag0tEQM.js:871
-notify @ index--ag0tEQM.js:1102
-trigger @ index--ag0tEQM.js:1089
-set value @ index--ag0tEQM.js:1883
-set @ index--ag0tEQM.js:1476
-setNodeActiveByName @ index--ag0tEQM.js:177533
-setNodeActive @ index--ag0tEQM.js:177530
-onSetNodeActivated @ NodeView-i5dNh-Et.js:15755
-callWithErrorHandling @ index--ag0tEQM.js:2423
-callWithAsyncErrorHandling @ index--ag0tEQM.js:2430
-emit @ index--ag0tEQM.js:7338
-onSetNodeActivated @ NodeView-i5dNh-Et.js:13949
-callWithErrorHandling @ index--ag0tEQM.js:2423
-callWithAsyncErrorHandling @ index--ag0tEQM.js:2430
-emit @ index--ag0tEQM.js:7338
-onActivate @ NodeView-i5dNh-Et.js:13537
-callWithErrorHandling @ index--ag0tEQM.js:2423
-callWithAsyncErrorHandling @ index--ag0tEQM.js:2430
-emit @ index--ag0tEQM.js:7338
-onActivate @ NodeView-i5dNh-Et.js:10888
-cache2.<computed>.cache2.<computed> @ index--ag0tEQM.js:10482
-callWithErrorHandling @ index--ag0tEQM.js:2423
-callWithAsyncErrorHandling @ index--ag0tEQM.js:2430
-invoker @ index--ag0tEQM.js:9598
+:5678/rest/workflows/5fmPxnru4M68rnQq/run?partialExecutionVersion=2:1 
+            
+            
+           Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+usePushConnection-C1qgSYjB.js:373 [Node: "🚀 Initialize Scraper"] Object
+usePushConnection-C1qgSYjB.js:373 [Node: "⚡ Process & Enrich Data"] Processing complete: 1/1 valid items
+usePushConnection-C1qgSYjB.js:373 [Node: "🌐 Fetch Individual Workflows"] Object
+usePushConnection-C1qgSYjB.js:373 [Node: "🌐 Fetch Individual Workflows"] Object
+usePushConnection-C1qgSYjB.js:373 [Node: "🌐 Fetch Individual Workflows"] Object
+usePushConnection-C1qgSYjB.js:373 [Node: "🌐 Fetch Individual Workflows"] Object
+:5678/rest/workflows/5fmPxnru4M68rnQq/run?partialExecutionVersion=2:1 
+            
+            
+           Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+usePushConnection-C1qgSYjB.js:373 [Node: "🚀 Initialize Scraper"] Object
+usePushConnection-C1qgSYjB.js:373 [Node: "⚡ Process & Enrich Data"] Processing complete: 1/1 valid items
+usePushConnection-C1qgSYjB.js:373 [Node: "🌐 Fetch Individual Workflows"] Object
+usePushConnection-C1qgSYjB.js:373 [Node: "🌐 Fetch Individual Workflows"] Object
+usePushConnection-C1qgSYjB.js:373 [Node: "🚀 Initialize Scraper"] Object
+usePushConnection-C1qgSYjB.js:373 [Node: "⚡ Process & Enrich Data"] Processing complete: 1/1 valid items
+usePushConnection-C1qgSYjB.js:373 [Node: "🌐 Fetch Individual Workflows"] Object
+usePushConnection-C1qgSYjB.js:373 [Node: "🌐 Fetch Individual Workflows"] Object
+NodeView-i5dNh-Et.js:16202 Execution 46 error:
+onExecutionOpenedWithError @ NodeView-i5dNh-Et.js:16202
+NodeView-i5dNh-Et.js:16203 Error: Connect a trigger to run this node
+    at WorkflowExecute.runPartialWorkflow2 (:5678/opt/homebrew/lib/node_modules/n8n/node_modules/n8n-core/src/execution-engine/workflow-execute.ts:425:10)
+    at ManualExecutionService.runManually (:5678/opt/homebrew/lib/node_modules/n8n/src/manual-execution.service.ts:179:28)
+    at WorkflowRunner.runMainProcess (:5678/opt/homebrew/lib/node_modules/n8n/src/workflow-runner.ts:285:53)
+    at WorkflowRunner.run (:5678/opt/homebrew/lib/node_modules/n8n/src/workflow-runner.ts:172:4)
+    at WorkflowExecutionService.executeManually (:5678/opt/homebrew/lib/node_modules/n8n/src/workflows/workflow-execution.service.ts:225:23)
+    at WorkflowsController.runManually (:5678/opt/homebrew/lib/node_modules/n8n/src/workflows/workflows.controller.ts:469:10)
+    at handler (:5678/opt/homebrew/lib/node_modules/n8n/src/controller.registry.ts:74:12)
+    at :5678/opt/homebrew/lib/node_modules/n8n/src/response-helper.ts:157:17
+onExecutionOpenedWithError @ NodeView-i5dNh-Et.js:16203
+index--ag0tEQM.js:2481 TypeError: Cannot read properties of undefined (reading 'singleValue')
+    at Proxy.<anonymous> (index--ag0tEQM.js:331574:28)
+    at renderComponentRoot (index--ag0tEQM.js:7448:17)
+    at ReactiveEffect.componentUpdateFn [as fn] (index--ag0tEQM.js:6413:46)
+    at ReactiveEffect.run (index--ag0tEQM.js:790:19)
+    at setupRenderEffect (index--ag0tEQM.js:6511:5)
+    at mountComponent (index--ag0tEQM.js:6348:7)
+    at processComponent (index--ag0tEQM.js:6315:9)
+    at patch (index--ag0tEQM.js:5876:11)
+    at mountChildren (index--ag0tEQM.js:6084:7)
+    at mountElement (index--ag0tEQM.js:6014:7)
+logError @ index--ag0tEQM.js:2481
+:5678/rest/workflows/5fmPxnru4M68rnQq/run?partialExecutionVersion=2:1 
+            
+            
+           Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+:5678/rest/workflows/5fmPxnru4M68rnQq/run?partialExecutionVersion=2:1 
+            
+            
+           Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+:5678/rest/workflows/5fmPxnru4M68rnQq/run?partialExecutionVersion=2:1 
+            
+            
+           Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+:5678/rest/workflows/5fmPxnru4M68rnQq/run?partialExecutionVersion=2:1 
+            
+            
+           Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+usePushConnection-C1qgSYjB.js:373 [Node: "🚀 Initialize Scraper"] Objectencoding: nullfollowAllRedirects: truefollowRedirect: truegzip: trueheaders: {accept: 'application/json,text/html,application/xhtml+xml,a…cation/xml,text/*;q=0.9, image/*;q=0.8, */*;q=0.7'}json: falsemethod: "GET"rejectUnauthorized: trueresolveWithFullResponse: truetimeout: 30000uri: "https://n8n.io/workflows/"useStream: true[[Prototype]]: Object
+usePushConnection-C1qgSYjB.js:373 [Node: "⚡ Process & Enrich Data"] Processing complete: 1/1 valid items
+usePushConnection-C1qgSYjB.js:373 [Node: "🌐 Fetch Individual Workflows"] Objectencoding: nullfollowAllRedirects: truefollowRedirect: truegzip: trueheaders: {accept: 'application/json,text/html,application/xhtml+xml,a…cation/xml,text/*;q=0.9, image/*;q=0.8, */*;q=0.7'}json: falsemethod: "GET"rejectUnauthorized: trueresolveWithFullResponse: truetimeout: 15000useStream: true[[Prototype]]: Object
+usePushConnection-C1qgSYjB.js:373 [Node: "🌐 Fetch Individual Workflows"] Objectencoding: nullfollowAllRedirects: truefollowRedirect: truegzip: trueheaders: {accept: 'application/json,text/html,application/xhtml+xml,a…cation/xml,text/*;q=0.9, image/*;q=0.8, */*;q=0.7'}json: falsemethod: "GET"rejectUnauthorized: trueresolveWithFullResponse: truetimeout: 15000uri: "https://n8n.io/workflows/"useStream: true[[Prototype]]: Objectconstructor: ƒ Object()hasOwnProperty: ƒ hasOwnProperty()isPrototypeOf: ƒ isPrototypeOf()propertyIsEnumerable: ƒ propertyIsEnumerable()toLocaleString: ƒ toLocaleString()toString: ƒ toString()valueOf: ƒ valueOf()__defineGetter__: ƒ __defineGetter__()__defineSetter__: ƒ __defineSetter__()__lookupGetter__: ƒ __lookupGetter__()__lookupSetter__: ƒ __lookupSetter__()__proto__: (...)get __proto__: ƒ __proto__()set __proto__: ƒ __proto__()
+
 
 
 ## 📊 Deployment Readiness Assessment

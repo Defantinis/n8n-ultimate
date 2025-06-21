@@ -2,7 +2,7 @@
   "models": {
     "main": {
       "provider": "ollama",
-      "modelId": "deepseek-r1:14b",
+      "modelId": "light-r1-14b-ds:latest",
       "maxTokens": 120000,
       "temperature": 0.2
     },

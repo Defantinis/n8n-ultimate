@@ -1,11 +1,45 @@
 import { randomUUID } from 'crypto';
-import { N8nWorkflow, N8nNode, N8nConnections, ParsedWorkflow } from '../types/n8n-workflow.js';
+import { N8nWorkflow, N8nNode, N8nConnections, ParsedWorkflow, WorkflowPlan, FlowConnection } from '../types/n8n-workflow.js';
 import { WorkflowParser } from '../parsers/workflow-parser.js';
 import { NodeFactory } from './node-factory.js';
 import { ConnectionBuilder } from './connection-builder.js';
 import { PositionCalculator } from '../utils/position-calculator.js';
 import { AIAgent } from '../ai-agents/ai-agent.js';
 import { memoryManager } from '../performance/memory-manager.js';
+
+/**
+ * Interface for workflow context analysis
+ */
+interface WorkflowContext {
+  type: 'scraper' | 'api' | 'data-processing' | 'notification' | 'automation' | 'integration';
+  domain: string;
+  complexity: number;
+  hasDataProcessing: boolean;
+  hasWebRequests: boolean;
+  hasFileOperations: boolean;
+  hasNotifications: boolean;
+}
+
+/**
+ * Simple workflow plan interface
+ */
+interface WorkflowPlan {
+  nodes: Array<{
+    type: string;
+    description: string;
+    parameters?: Record<string, any>;
+  }>;
+  estimatedComplexity?: number;
+}
+
+/**
+ * Simple flow connection interface
+ */
+interface FlowConnection {
+  from: string;
+  to: string;
+  type?: string;
+}
 
 /**
  * Main workflow generator that creates n8n workflows from user requirements
@@ -109,8 +143,21 @@ export class WorkflowGenerator {
   private async generateNodes(plan: WorkflowPlan, workflowId?: string): Promise<N8nNode[]> {
     const nodes: N8nNode[] = [];
 
+    // ENHANCED: Intelligent trigger selection and configuration
+    const hasTrigger = plan.nodes.some(node => this.isTriggerNode(node.type));
+    if (!hasTrigger) {
+      const triggerNode = this.selectAndCreateTriggerNode(plan);
+      nodes.push(triggerNode);
+    }
+
+    // Detect workflow type for context-aware parameter configuration
+    const workflowContext = this.analyzeWorkflowContext(plan);
+
     for (const nodeSpec of plan.nodes) {
       const node = await this.nodeFactory.createNode(nodeSpec);
+      
+      // CRITICAL FIX: Ensure all node parameters have proper default values with workflow context
+      node.parameters = this.ensureValidParameters(node.parameters, node.type);
       
       // Use memory pool for node objects if workflowId provided
       if (workflowId) {
@@ -128,6 +175,702 @@ export class WorkflowGenerator {
     }
 
     return nodes;
+  }
+
+  /**
+   * Analyze workflow context to provide intelligent parameter defaults
+   */
+  private analyzeWorkflowContext(plan: WorkflowPlan): WorkflowContext {
+    const nodeTypes = plan.nodes.map(n => n.type);
+    const descriptions = plan.nodes.map(n => n.description).join(' ').toLowerCase();
+    
+    return {
+      type: this.detectWorkflowType(nodeTypes, descriptions),
+      domain: this.detectWorkflowDomain(descriptions),
+      complexity: plan.estimatedComplexity || 5,
+      hasDataProcessing: nodeTypes.some(t => t.includes('code') || t.includes('set')),
+      hasWebRequests: nodeTypes.some(t => t.includes('httpRequest')),
+      hasFileOperations: nodeTypes.some(t => t.includes('file') || t.includes('csv')),
+      hasNotifications: nodeTypes.some(t => t.includes('email') || t.includes('slack'))
+    };
+  }
+
+  /**
+   * Detect the primary workflow type
+   */
+  private detectWorkflowType(nodeTypes: string[], descriptions: string): 'scraper' | 'api' | 'data-processing' | 'notification' | 'automation' | 'integration' {
+    if (descriptions.includes('scrap') || descriptions.includes('extract') || nodeTypes.some(t => t.includes('html'))) {
+      return 'scraper';
+    }
+    if (descriptions.includes('api') || descriptions.includes('endpoint') || nodeTypes.some(t => t.includes('webhook'))) {
+      return 'api';
+    }
+    if (descriptions.includes('process') || descriptions.includes('transform') || nodeTypes.some(t => t.includes('code'))) {
+      return 'data-processing';
+    }
+    if (descriptions.includes('email') || descriptions.includes('notify') || nodeTypes.some(t => t.includes('email'))) {
+      return 'notification';
+    }
+    if (descriptions.includes('automat') || descriptions.includes('schedul')) {
+      return 'automation';
+    }
+    return 'integration';
+  }
+
+  /**
+   * Detect the workflow domain/industry
+   */
+  private detectWorkflowDomain(descriptions: string): string {
+    if (descriptions.includes('e-commerce') || descriptions.includes('shop') || descriptions.includes('product')) return 'ecommerce';
+    if (descriptions.includes('social') || descriptions.includes('twitter') || descriptions.includes('instagram')) return 'social-media';
+    if (descriptions.includes('finance') || descriptions.includes('payment') || descriptions.includes('invoice')) return 'finance';
+    if (descriptions.includes('crm') || descriptions.includes('customer') || descriptions.includes('lead')) return 'crm';
+    if (descriptions.includes('marketing') || descriptions.includes('campaign') || descriptions.includes('analytics')) return 'marketing';
+    return 'general';
+  }
+
+  /**
+   * Ensure node parameters have valid structure and values to prevent JavaScript UI errors
+   */
+  private ensureValidParameters(parameters: any, nodeType: string): Record<string, any> {
+    if (!parameters || typeof parameters !== 'object') {
+      parameters = {};
+    }
+
+    // CRITICAL: Clean any [object Object] references and undefined values first
+    parameters = this.cleanObjectReferences(parameters);
+    
+    // CRITICAL: Validate against n8n UI requirements to prevent React component crashes
+    parameters = this.validateForN8nUI(parameters, nodeType);
+
+    // ENHANCED: Apply intelligent defaults based on node type
+    return this.applyIntelligentDefaults(parameters, nodeType);
+  }
+
+  /**
+   * Validate parameters for n8n UI compatibility and prevent React component errors
+   */
+  private validateForN8nUI(parameters: any, nodeType: string): Record<string, any> {
+    const cleanParams: Record<string, any> = {};
+
+    // CRITICAL: Ensure all parameter values are React-component safe
+    for (const [key, value] of Object.entries(parameters)) {
+      if (value === undefined || value === null) {
+        // Skip undefined/null values that break React components
+        continue;
+      }
+
+      if (typeof value === 'string' && value.includes('[object Object]')) {
+        // Skip malformed string values
+        continue;
+      }
+
+      if (typeof value === 'object' && value !== null) {
+        if (Array.isArray(value)) {
+          // Validate arrays
+          cleanParams[key] = this.validateArrayForUI(value);
+        } else {
+          // Recursively validate objects
+          cleanParams[key] = this.validateForN8nUI(value, nodeType);
+        }
+      } else {
+        // Primitive values - ensure they're valid
+        cleanParams[key] = this.validatePrimitiveForUI(value);
+      }
+    }
+
+    // CRITICAL: Add required fields that n8n UI expects for specific node types
+    return this.addRequiredUIFields(cleanParams, nodeType);
+  }
+
+  /**
+   * Validate array values for UI compatibility
+   */
+  private validateArrayForUI(arr: any[]): any[] {
+    return arr.filter(item => {
+      if (item === undefined || item === null) return false;
+      if (typeof item === 'string' && item.includes('[object Object]')) return false;
+      return true;
+    }).map(item => {
+      if (typeof item === 'object' && item !== null && !Array.isArray(item)) {
+        return this.validateForN8nUI(item, '');
+      }
+      return this.validatePrimitiveForUI(item);
+    });
+  }
+
+  /**
+   * Validate primitive values for UI compatibility
+   */
+  private validatePrimitiveForUI(value: any): any {
+    // Handle different primitive types
+    switch (typeof value) {
+      case 'string':
+        // Ensure strings don't contain object references
+        if (value.includes('[object Object]')) return '';
+        return value;
+      case 'number':
+        // Ensure valid numbers
+        if (isNaN(value) || !isFinite(value)) return 0;
+        return value;
+      case 'boolean':
+        return Boolean(value);
+      default:
+        // For unknown types, convert to empty string
+        return '';
+    }
+  }
+
+  /**
+   * Add required UI fields based on node type to prevent React component errors
+   */
+  private addRequiredUIFields(parameters: Record<string, any>, nodeType: string): Record<string, any> {
+    switch (nodeType) {
+      case 'n8n-nodes-base.httpRequest':
+        return {
+          ...parameters,
+          // CRITICAL: These fields are required by n8n's HTTP Request UI component
+          url: parameters.url || 'https://example.com/api',
+          method: parameters.method || 'GET',
+          sendQuery: parameters.sendQuery || false,
+          queryParameters: parameters.queryParameters || { parameters: [] },
+          sendHeaders: parameters.sendHeaders || false,
+          headerParameters: parameters.headerParameters || { parameters: [] },
+          sendBody: parameters.sendBody || false,
+          contentType: parameters.contentType || 'json',
+          options: {
+            timeout: 10000,
+            retry: { limit: 3, delayBetweenRetries: 1000 },
+            redirect: { maxRedirects: 5 },
+            response: { response: 'autodetect' },
+            ...parameters.options
+          }
+        };
+
+      case 'n8n-nodes-base.if':
+        return {
+          ...parameters,
+          // CRITICAL: IF nodes require proper condition structure
+          conditions: {
+            options: {
+              caseSensitive: true,
+              leftValue: '',
+              typeValidation: 'strict'
+            },
+            conditions: [
+              {
+                id: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(),
+                leftValue: '{{ $json.statusCode }}',
+                rightValue: 200,
+                operator: {
+                  type: 'number',
+                  operation: 'equals',
+                  singleValue: true
+                }
+              }
+            ],
+            combinator: 'and',
+            ...parameters.conditions
+          }
+        };
+
+      case 'n8n-nodes-base.htmlExtract':
+        return {
+          ...parameters,
+          // CRITICAL: HTML Extract nodes need proper extraction rules
+          extractionValues: {
+            values: [
+              {
+                key: 'title',
+                cssSelector: 'title',
+                returnValue: 'text',
+                ...parameters.extractionValues?.values?.[0]
+              }
+            ],
+            ...parameters.extractionValues
+          },
+          options: {
+            trimValues: true,
+            skipEmptyValues: true,
+            ...parameters.options
+          }
+        };
+
+      case 'n8n-nodes-base.code':
+        return {
+          ...parameters,
+          // CRITICAL: Code nodes need valid JavaScript
+          jsCode: parameters.jsCode || this.generateSafeJavaScript(),
+          mode: parameters.mode || 'runOnceForAllItems',
+          ...parameters
+        };
+
+      case 'n8n-nodes-base.set':
+        return {
+          ...parameters,
+          // CRITICAL: Set nodes need proper value mapping
+          values: {
+            number: [],
+            string: [
+              {
+                name: 'timestamp',
+                value: '{{ new Date().toISOString() }}'
+              },
+              {
+                name: 'status',
+                value: 'processed'
+              }
+            ],
+            boolean: [],
+            array: [],
+            object: [],
+            ...parameters.values
+          },
+          options: {
+            dotNotation: true,
+            ...parameters.options
+          }
+        };
+
+      default:
+        return parameters;
+    }
+  }
+
+  /**
+   * Generate safe JavaScript code for Code nodes that won't cause UI errors
+   */
+  private generateSafeJavaScript(): string {
+    return `// Auto-generated safe code
+for (const item of $input.all()) {
+  // Process each item safely
+  try {
+    const processedItem = {
+      ...item.json,
+      processed_at: new Date().toISOString(),
+      processed: true
+    };
+    
+    $input.item = { json: processedItem, pairedItem: item.pairedItem };
+  } catch (error) {
+    // Handle errors gracefully
+    $input.item = { 
+      json: { ...item.json, error: error.message, processed: false }, 
+      pairedItem: item.pairedItem 
+    };
+  }
+}
+
+return $input.all();`;
+  }
+
+  /**
+   * Clean [object Object] references and undefined values from parameters
+   */
+  private cleanObjectReferences(params: Record<string, any>): void {
+    for (const key in params) {
+      if (params[key] === '[object Object]' || params[key] === 'undefined') {
+        delete params[key];
+      } else if (typeof params[key] === 'object' && params[key] !== null) {
+        this.cleanObjectReferences(params[key]);
+      }
+    }
+  }
+
+  /**
+   * Apply intelligent defaults based on node type
+   */
+  private applyIntelligentDefaults(parameters: Record<string, any>, nodeType: string): Record<string, any> {
+    let validParams = { ...parameters };
+
+    switch (nodeType) {
+      case 'n8n-nodes-base.httpRequest':
+        // Intelligent HTTP Request auto-configuration
+        if (!validParams.url) {
+          validParams.url = "https://example.com/api"; // Better default than just example.com
+        }
+        if (!validParams.httpMethod) {
+          validParams.httpMethod = "GET";
+        }
+        if (!validParams.options) {
+          validParams.options = {
+            timeout: 30000,
+            retry: {
+              enabled: true,
+              maxRetries: 3,
+              retryDelay: 1000
+            },
+            headers: {
+              "User-Agent": "Mozilla/5.0 (compatible; n8n-workflow/1.0)",
+              "Accept": "application/json, text/html, */*"
+            }
+          };
+        }
+        // Auto-configure for scraping if URL suggests it
+        if (validParams.url && (validParams.url.includes('workflows') || validParams.url.includes('scrape'))) {
+          validParams.options.headers = {
+            ...validParams.options.headers,
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+          };
+        }
+        break;
+
+      case 'n8n-nodes-base.html':
+        // Smart HTML extraction defaults
+        if (!validParams.operation) {
+          validParams.operation = "extractHtmlContent";
+        }
+        if (!validParams.extractionValues || !validParams.extractionValues.values) {
+          validParams.extractionValues = {
+            values: [
+              {
+                key: "title",
+                cssSelector: "h1, h2, .title, [class*='title']",
+                returnValue: "text"
+              },
+              {
+                key: "links",
+                cssSelector: "a[href]",
+                returnValue: "attribute",
+                attribute: "href"
+              },
+              {
+                key: "text",
+                cssSelector: "p, .content, [class*='content']",
+                returnValue: "text"
+              }
+            ]
+          };
+        }
+        if (!validParams.options) {
+          validParams.options = {
+            trimValues: true,
+            includeEmptyValues: false
+          };
+        }
+        break;
+
+      case 'n8n-nodes-base.code':
+        // Intelligent Code node defaults
+        if (!validParams.jsCode || validParams.jsCode.trim() === '') {
+          validParams.jsCode = this.generateIntelligentCodeDefault(validParams);
+        }
+        if (!validParams.options) {
+          validParams.options = {
+            continueOnFail: false
+          };
+        }
+        break;
+
+      case 'n8n-nodes-base.set':
+        // Smart Set node configuration
+        if (!validParams.options) {
+          validParams.options = {
+            keepOnlySet: false
+          };
+        }
+        if (!validParams.values) {
+          validParams.values = {
+            number: [
+              {
+                name: "processedAt",
+                value: "={{ new Date().toISOString() }}"
+              }
+            ],
+            string: [
+              {
+                name: "status",
+                value: "processed"
+              }
+            ]
+          };
+        }
+        break;
+
+      case 'n8n-nodes-base.splitInBatches':
+        // Optimal batch processing defaults
+        if (!validParams.batchSize) {
+          validParams.batchSize = 5; // Good default for most APIs
+        }
+        if (!validParams.options) {
+          validParams.options = {
+            continueOnFail: true,
+            reset: false
+          };
+        }
+        break;
+
+      case 'n8n-nodes-base.writeBinaryFile':
+        // Smart file writing defaults
+        if (!validParams.fileName) {
+          validParams.fileName = "output-{{ new Date().toISOString().split('T')[0] }}.json";
+        }
+        if (!validParams.options) {
+          validParams.options = {
+            encoding: "utf8",
+            append: false
+          };
+        }
+        break;
+
+      case 'n8n-nodes-base.emailSend':
+        // Email notification defaults
+        if (!validParams.subject) {
+          validParams.subject = "🎉 Workflow Completed Successfully";
+        }
+        if (!validParams.message) {
+          validParams.message = "Your n8n workflow has completed successfully!\n\nTimestamp: {{ new Date().toISOString() }}\nItems processed: {{ $json.length || 1 }}";
+        }
+        if (!validParams.options) {
+          validParams.options = {
+            priority: "normal"
+          };
+        }
+        break;
+
+      default:
+        // Generic parameter validation for unknown node types
+        if (Object.keys(validParams).length === 0) {
+          validParams.options = {
+            continueOnFail: false
+          };
+        }
+        break;
+    }
+
+    return validParams;
+  }
+
+  /**
+   * Generate intelligent code defaults based on context
+   */
+  private generateIntelligentCodeDefault(parameters: Record<string, any>): string {
+    // Detect if this might be data processing, filtering, or transformation
+    const contextHints = JSON.stringify(parameters).toLowerCase();
+    
+    if (contextHints.includes('filter') || contextHints.includes('condition')) {
+      return `// Filter and process data
+const items = $input.all();
+const filteredItems = items.filter(item => {
+  // Add your filtering logic here
+  return item.json.status === 'active';
+});
+
+return filteredItems;`;
+    }
+    
+    if (contextHints.includes('transform') || contextHints.includes('map')) {
+      return `// Transform data
+const items = $input.all();
+const transformedItems = items.map(item => ({
+  ...item.json,
+  processedAt: new Date().toISOString(),
+  // Add your transformations here
+}));
+
+return transformedItems.map(item => ({ json: item }));`;
+    }
+    
+    if (contextHints.includes('analyze') || contextHints.includes('stats')) {
+      return `// Analyze and enhance data
+const items = $input.all();
+const stats = {
+  total: items.length,
+  processed: 0,
+  errors: []
+};
+
+const processedItems = [];
+
+for (const item of items) {
+  try {
+    // Add your analysis logic here
+    const enhanced = {
+      ...item.json,
+      analyzedAt: new Date().toISOString()
+    };
+    
+    processedItems.push({ json: enhanced });
+    stats.processed++;
+  } catch (error) {
+    stats.errors.push({ error: error.message, data: item.json });
+  }
+}
+
+// Add stats summary
+processedItems.push({ json: { _stats: stats, _type: 'summary' } });
+
+return processedItems;`;
+    }
+    
+    // Default generic processing code
+    return `// Process the input data
+const items = $input.all();
+
+// Your processing logic here
+const processedItems = items.map(item => ({
+  ...item.json,
+  processedAt: new Date().toISOString()
+}));
+
+return processedItems.map(item => ({ json: item }));`;
+  }
+
+  /**
+   * Check if a node type is a trigger node
+   */
+  private isTriggerNode(nodeType: string): boolean {
+    const triggerTypes = [
+      'n8n-nodes-base.manualTrigger',
+      'n8n-nodes-base.webhook',
+      'n8n-nodes-base.schedule',
+      'n8n-nodes-base.httpRequestTrigger',
+      'n8n-nodes-base.emailTrigger',
+      'n8n-nodes-base.fileTrigger'
+    ];
+    return triggerTypes.includes(nodeType);
+  }
+
+  /**
+   * Intelligently select and create the most appropriate trigger node
+   */
+  private selectAndCreateTriggerNode(plan: WorkflowPlan): N8nNode {
+    const triggerType = this.determineTriggerType(plan);
+    
+    switch (triggerType) {
+      case 'webhook':
+        return this.createWebhookTriggerNode();
+      case 'schedule':
+        return this.createScheduleTriggerNode(plan);
+      case 'manual':
+      default:
+        return this.createManualTriggerNode();
+    }
+  }
+
+  /**
+   * Determine the most appropriate trigger type based on workflow characteristics
+   */
+  private determineTriggerType(plan: WorkflowPlan): 'manual' | 'webhook' | 'schedule' {
+    const nodeTypes = plan.nodes.map(n => n.type);
+    const descriptions = plan.nodes.map(n => n.description).join(' ').toLowerCase();
+    
+    // Webhook triggers for API endpoints, integrations, and real-time processing
+    if (descriptions.includes('api') || 
+        descriptions.includes('endpoint') || 
+        descriptions.includes('webhook') ||
+        descriptions.includes('real-time') ||
+        descriptions.includes('integration') ||
+        nodeTypes.some(t => t.includes('api') || t.includes('webhook'))) {
+      return 'webhook';
+    }
+    
+    // Schedule triggers for automation, monitoring, and recurring tasks
+    if (descriptions.includes('schedule') || 
+        descriptions.includes('automat') || 
+        descriptions.includes('daily') || 
+        descriptions.includes('hourly') ||
+        descriptions.includes('monitor') ||
+        descriptions.includes('recurring') ||
+        descriptions.includes('batch') ||
+        descriptions.includes('sync')) {
+      return 'schedule';
+    }
+    
+    // Manual triggers for testing, scraping, and on-demand workflows
+    return 'manual';
+  }
+
+  /**
+   * Create a manual trigger node for testing workflows
+   */
+  private createManualTriggerNode(): N8nNode {
+    return {
+      parameters: {
+        options: {
+          manualTriggerMessage: "Click to start this workflow manually"
+        }
+      },
+      type: 'n8n-nodes-base.manualTrigger',
+      typeVersion: 1,
+      position: [100, 200],
+      id: 'manual-trigger',
+      name: '▶️ Manual Trigger'
+    };
+  }
+
+  /**
+   * Create a webhook trigger node for API integrations
+   */
+  private createWebhookTriggerNode(): N8nNode {
+    return {
+      parameters: {
+        path: 'workflow-webhook',
+        options: {
+          responseMode: 'responseNode',
+          responseData: 'firstEntryJson'
+        },
+        httpMethod: 'POST',
+        authentication: 'none'
+      },
+      type: 'n8n-nodes-base.webhook',
+      typeVersion: 1.1,
+      position: [100, 200],
+      id: 'webhook-trigger',
+      name: '🌐 Webhook Trigger'
+    };
+  }
+
+  /**
+   * Create a schedule trigger node for automated workflows
+   */
+  private createScheduleTriggerNode(plan: WorkflowPlan): N8nNode {
+    const scheduleInterval = this.determineScheduleInterval(plan);
+    
+    return {
+      parameters: {
+        rule: {
+          interval: scheduleInterval.interval
+        },
+        triggerTimes: {
+          item: scheduleInterval.triggerTimes
+        }
+      },
+      type: 'n8n-nodes-base.schedule',
+      typeVersion: 1.1,
+      position: [100, 200],
+      id: 'schedule-trigger',
+      name: '⏰ Schedule Trigger'
+    };
+  }
+
+  /**
+   * Determine appropriate schedule interval based on workflow type
+   */
+  private determineScheduleInterval(plan: WorkflowPlan): { interval: any[], triggerTimes: any[] } {
+    const descriptions = plan.nodes.map(n => n.description).join(' ').toLowerCase();
+    
+    // High-frequency monitoring (every 5 minutes)
+    if (descriptions.includes('monitor') || descriptions.includes('alert') || descriptions.includes('health')) {
+      return {
+        interval: [{ field: 'minutes', secondsInterval: 5 }],
+        triggerTimes: []
+      };
+    }
+    
+    // Hourly data processing
+    if (descriptions.includes('hourly') || descriptions.includes('frequent')) {
+      return {
+        interval: [{ field: 'hours', hoursInterval: 1 }],
+        triggerTimes: [{ hour: 0, minute: 0 }]
+      };
+    }
+    
+    // Daily batch processing (default - runs at 2 AM)
+    return {
+      interval: [{ field: 'days', daysInterval: 1 }],
+      triggerTimes: [{ hour: 2, minute: 0 }]
+    };
   }
 
   /**

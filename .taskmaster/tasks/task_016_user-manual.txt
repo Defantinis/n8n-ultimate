@@ -1,0 +1,11 @@
+# Task ID: 16
+# Title: Document Community Node Integration Features
+# Status: pending
+# Dependencies: 13, 14, 15
+# Priority: high
+# Description: Generate detailed documentation for community node integration system including key components and user guides.
+# Details:
+The task involves creating comprehensive documentation for the Community Node Integration system, focusing on three core TypeScript files: community-node-registry.ts, community-node-validator.ts, and dynamic-node-parser.ts. The documentation should explain how users can leverage these features to extend their workflows with community nodes. This includes providing code examples, usage guides, and best practices. Additionally, the documentation must cover the integration process with n8n-ultimate, highlighting how these components interact and contribute to enhancing workflow capabilities.
+
+# Test Strategy:
+The documentation will be reviewed internally for accuracy and completeness. Key areas of focus include ensuring all components are properly explained, integration steps are clear, and examples are functional. User testing with selected participants will assess the usability and clarity of the documentation.

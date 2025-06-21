@@ -17,6 +17,13 @@ export class ConnectionBuilder {
       connections[node.name] = {};
     }
 
+    // CRITICAL FIX: Ensure trigger node is connected if we have one
+    const triggerNode = nodes.find(node => this.isTriggerNode(node.type));
+    if (triggerNode && flow.length === 0) {
+      // If no flow specified but we have a trigger, create a linear flow
+      return this.buildLinearConnections(nodes);
+    }
+
     // Build connections based on flow specification
     for (const connection of flow) {
       const fromNode = nodes.find(n => n.id === connection.from || n.name === connection.from);
@@ -30,7 +37,34 @@ export class ConnectionBuilder {
       this.addConnection(connections, fromNode, toNode, connection);
     }
 
+    // CRITICAL FIX: Auto-connect trigger node if it's not connected
+    if (triggerNode && !connections[triggerNode.name]['main']) {
+      const nextNode = nodes.find(node => node !== triggerNode && !this.isTriggerNode(node.type));
+      if (nextNode) {
+        connections[triggerNode.name]['main'] = [[{
+          node: nextNode.name,
+          type: 'main',
+          index: 0
+        }]];
+      }
+    }
+
     return connections;
+  }
+
+  /**
+   * Check if a node is a trigger node
+   */
+  private isTriggerNode(nodeType: string): boolean {
+    const triggerTypes = [
+      'n8n-nodes-base.manualTrigger',
+      'n8n-nodes-base.webhook',
+      'n8n-nodes-base.schedule',
+      'n8n-nodes-base.httpRequestTrigger',
+      'n8n-nodes-base.emailTrigger',
+      'n8n-nodes-base.fileTrigger'
+    ];
+    return triggerTypes.includes(nodeType);
   }
 
   /**
