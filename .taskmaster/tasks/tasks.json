@@ -541,8 +541,36 @@
         "dependencies": [
           1
         ],
-        "status": "pending",
-        "subtasks": []
+        "status": "done",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Develop Strategy for Advanced AI Features",
+            "description": "Research and outline a strategy for integrating more advanced AI capabilities, such as multi-modal inputs (e.g., images, audio), long-term memory for AI agents, and proactive suggestion engines.",
+            "details": "<info added on 2025-06-22T20:03:46.498Z>\nCreated a document `docs/Future_Architecture_Strategy.md` outlining plans for future architectural enhancements. The draft includes initial strategies and diagrams covering:\n\n- Advanced AI Features: Multi-modal inputs, Long-term memory.\n- Community Contribution: Plugin/SDK Architecture.\n- Third-Party API Strategy: Transition to GraphQL.\n\nThis completes the initial planning phase for this subtask.\n</info added on 2025-06-22T20:03:46.498Z>",
+            "status": "done",
+            "dependencies": [],
+            "parentTaskId": 10
+          },
+          {
+            "id": 2,
+            "title": "Design Community Contribution/Plugin Architecture",
+            "description": "Design a plugin architecture or SDK that would allow community members to contribute their own custom validators, generators, or even AI agents. This should include documentation on the extension points and a contribution guide.",
+            "details": "",
+            "status": "done",
+            "dependencies": [],
+            "parentTaskId": 10
+          },
+          {
+            "id": 3,
+            "title": "Define Third-Party Integration and API Strategy",
+            "description": "Evaluate and propose a long-term API strategy for third-party integrations. This should compare the existing REST-like API with a potential transition to GraphQL, considering factors like developer experience, performance, and type safety for the dashboard and external partners.",
+            "details": "",
+            "status": "done",
+            "dependencies": [],
+            "parentTaskId": 10
+          }
+        ]
       },
       {
         "id": 11,
@@ -778,11 +806,24 @@
             "parentTaskId": 15
           }
         ]
+      },
+      {
+        "id": 16,
+        "title": "Fix n8n Workflow Import Error for HubSpot-Mixpanel Integration",
+        "description": "Resolve the 'Values[itemName] is not iterable' error by validating JSON, aligning node definitions and connections, testing import functionality, and committing a clean workflow.",
+        "details": "The task involves several key steps to address the n8n workflow import error. First, validate the JSON structure of workflows/hubspot-mixpanel-integration.json using tools like JSONLint or similar validators to ensure syntax correctness. Next, review node definitions within the JSON file to confirm that all nodes have valid IDs and types as expected by n8n's schema. Check for any stray entries such as 'Filter valid contacts' and remove or correct them if necessary. Ensure that connection keys between nodes are correctly defined and match their corresponding target nodes. After making these corrections, run an import test in the n8n environment to verify that the workflow imports without errors. Finally, commit the corrected JSON file to version control with a clear message indicating the resolution of the import error.",
+        "testStrategy": "To ensure the task is completed successfully, begin by running automated tests on the JSON structure for syntax validation. Manually inspect node definitions and connections in the JSON file against n8n's expected schema. Perform an end-to-end test by importing the corrected workflow into a fresh n8n instance to confirm that no errors occur during import. Additionally, execute functional testing of the workflow within n8n to ensure it operates as intended with HubSpot and Mixpanel integration. Document any issues encountered during these tests and resolve them before considering the task complete.",
+        "status": "pending",
+        "dependencies": [
+          14
+        ],
+        "priority": "high",
+        "subtasks": []
       }
     ],
     "metadata": {
       "created": "2025-06-22T12:33:34.603Z",
-      "updated": "2025-06-22T19:59:28.774Z",
+      "updated": "2025-06-22T21:29:02.650Z",
       "description": "Tasks for phase2-user-experience context"
     }
   }
