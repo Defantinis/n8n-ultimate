@@ -63,4 +63,11 @@ export class WorkflowGeneratorComponent {
       previewContainer.innerHTML = `<p class="error">Failed to generate workflow: ${error.message}</p>`;
     }
   }
+
+  // This method can be called to clean up event listeners
+  // or other resources when the component is removed.
+  public dispose(): void {
+    // No-op for now, as event listeners are on child elements
+    // that will be removed from the DOM.
+  }
 } 
