@@ -144,6 +144,18 @@ export const ACCESSIBILITY_FEATURES = {
 import { WorkflowGeneratorComponent } from './workflow-generator/index.js';
 import { TemplateGalleryComponent } from './template-gallery/index.js';
 import { SystemMonitorComponent } from './system-monitor/index.js';
+import { GuidedGenerationComponent } from './interactions/guided-generation';
+import { CommandPalette } from './interactions/command-palette';
+import { feedbackBus, UserIntent } from './interactions/feedback-bus';
+import { userContext } from './user-context';
+import { WorkspaceSwitcher } from './collaboration/workspace-switcher';
+import { TeamManager } from './collaboration/team-manager';
+import { WorkflowReviewUI } from './collaboration/workflow-review-ui';
+import { TemplateManagerComponent } from './template-manager';
+import { ABTestManagerComponent } from './ab-test-manager';
+
+const MOCK_WORKSPACE_ID = 'ws_1';
+const MOCK_WORKFLOW_ID = 'wf_123';
 
 /**
  * Main Dashboard Class - Central orchestrator for user experience
@@ -152,12 +164,31 @@ export class N8nUltimateDashboard {
   private config: DashboardConfig;
   private rootElement: HTMLElement;
   private currentComponent: { dispose?: () => void } | null = null;
+  private commandPalette: CommandPalette;
   
   constructor(config: DashboardConfig, rootElement: HTMLElement) {
     this.config = config;
     this.rootElement = rootElement;
+    this.commandPalette = new CommandPalette(this.rootElement);
+    this.initializeDashboard();
     this.initializeAccessibility();
+    this.listenForIntents();
     this.showGettingStarted();
+  }
+  
+  private initializeDashboard(): void {
+    this.rootElement.innerHTML = `
+      <header class="main-header">
+        <div class="header-left"></div>
+        <div class="header-right"></div>
+      </header>
+      <main class="main-content"></main>
+    `;
+    
+    const headerLeft = this.rootElement.querySelector('.header-left') as HTMLElement;
+    const mainContent = this.rootElement.querySelector('.main-content') as HTMLElement;
+
+    this.renderCollaborationSection(headerLeft, mainContent);
   }
   
   /**
@@ -174,32 +205,41 @@ export class N8nUltimateDashboard {
     }
   }
   
+  private listenForIntents(): void {
+    feedbackBus.subscribe('userIntent', (intent: UserIntent) => {
+      if (intent.type === 'NAVIGATE') {
+        this.navigateTo(intent.payload.sectionId);
+      }
+      // ... handle other intents
+    });
+  }
+  
   /**
    * Get navigation items filtered by user level and availability
    */
   getNavigation(): NavigationItem[] {
+    const { skillLevel } = userContext.get();
     return DASHBOARD_NAVIGATION.filter(item => 
       item.isAvailable && 
-      this.isFeatureAccessible(item.requiredLevel)
+      this.isFeatureAccessible(item.requiredLevel, skillLevel)
     );
   }
   
   /**
    * Check if feature is accessible to current user level
    */
-  private isFeatureAccessible(requiredLevel?: string): boolean {
+  private isFeatureAccessible(requiredLevel: string | undefined, userLevel: string): boolean {
     if (!requiredLevel) return true;
     
     const levels = ['beginner', 'intermediate', 'expert'];
-    const userLevel = levels.indexOf(this.config.user.level);
-    const requireLevel = levels.indexOf(requiredLevel);
+    const currentUserLevelIndex = levels.indexOf(userLevel);
+    const requiredLevelIndex = levels.indexOf(requiredLevel);
     
-    return userLevel >= requireLevel;
+    return currentUserLevelIndex >= requiredLevelIndex;
   }
   
   /**
-   * Navigate to a specific dashboard section.
-   * This is the primary method for changing views.
+   * Navigate to a specific section of the dashboard
    */
   public navigateTo(sectionId: string): void {
     if (this.currentComponent && typeof this.currentComponent.dispose === 'function') {
@@ -207,76 +247,102 @@ export class N8nUltimateDashboard {
       this.currentComponent = null;
     }
 
+    // Do not clear the whole root element, only the main content
+    const mainContent = this.rootElement.querySelector('.main-content');
+    if (mainContent) {
+        mainContent.innerHTML = ''; // Clear previous component
+    } else {
+        console.error('Main content area not found!');
+        return;
+    }
+    
+    let ComponentClass;
     switch (sectionId) {
       case 'workflow-generator':
-        this.currentComponent = new WorkflowGeneratorComponent(this.rootElement);
+        ComponentClass = WorkflowGeneratorComponent;
         break;
       case 'template-gallery':
-        this.currentComponent = new TemplateGalleryComponent(this.rootElement);
+        ComponentClass = TemplateGalleryComponent;
         break;
       case 'system-monitor':
-        this.currentComponent = new SystemMonitorComponent(this.rootElement);
+        ComponentClass = SystemMonitorComponent;
         break;
-      // Add cases for 'control-panel' and 'user-guide' here
+      case 'guided-generation':
+        ComponentClass = GuidedGenerationComponent;
+        break;
+      case 'template-manager':
+        ComponentClass = TemplateManagerComponent;
+        break;
+      case 'ab-test-manager':
+        ComponentClass = ABTestManagerComponent;
+        break;
+      // Add other cases for control-panel, user-guide etc.
       default:
         this.showGettingStarted();
-        break;
+        return;
     }
+    
+    this.currentComponent = new ComponentClass(mainContent);
   }
 
   /**
-   * Handle user interaction and route to appropriate feature
+   * Handle user input, potentially routing to the AI agent
    */
   async handleUserInput(input: string, context?: any): Promise<any> {
-    // This will be the main entry point for AI-human interaction
-    // Route to appropriate dashboard component based on user intent
+    // This could now be powered by the feedback bus
+    const intent: UserIntent = {
+      type: 'HANDLE_TEXT_INPUT',
+      payload: { input, context },
+    };
+    feedbackBus.publish('userIntent', intent);
     
-    if (input.toLowerCase().includes('create') || input.toLowerCase().includes('workflow')) {
-      this.navigateTo('workflow-generator');
-      return;
-    }
-    
-    if (input.toLowerCase().includes('template') || input.toLowerCase().includes('browse')) {
-      this.navigateTo('template-gallery');
-      return;
-    }
-    
-    if (input.toLowerCase().includes('status') || input.toLowerCase().includes('monitor')) {
-      this.navigateTo('system-monitor');
-      return;
-    }
-
-    if (input.toLowerCase().includes('help') || input.toLowerCase().includes('guide')) {
-      this.navigateTo('user-guide');
-      return;
-    }
-    
-    // Default: show help with available options
-    this.showGettingStarted();
+    // Placeholder response
+    return { response: 'AI is processing your request...' };
   }
   
   private showGettingStarted(): void {
-    if (this.currentComponent && typeof this.currentComponent.dispose === 'function') {
-      this.currentComponent.dispose();
-    }
-    this.rootElement.innerHTML = `
-      <div class="getting-started">
-        <h2>Welcome to n8n Ultimate!</h2>
-        <p>What would you like to do?</p>
-        <ul>
-          ${DASHBOARD_NAVIGATION.map(item => `<li><button data-section-id="${item.id}">${item.title}</button></li>`).join('')}
-        </ul>
-      </div>
-    `;
-
-    this.rootElement.querySelectorAll('button[data-section-id]').forEach(button => {
-      button.addEventListener('click', (e) => {
-        const sectionId = (e.target as HTMLElement).dataset.sectionId;
-        if (sectionId) {
-          this.navigateTo(sectionId);
+    const { useGuidedMode } = userContext.get().preferences;
+    if (useGuidedMode) {
+      this.navigateTo('guided-generation');
+    } else {
+        const mainContent = this.rootElement.querySelector('.main-content');
+        if(mainContent){
+            mainContent.innerHTML = `
+                <h1>Welcome to n8n Ultimate</h1>
+                <p>Select a feature from the sidebar to get started.</p>
+            `;
         }
-      });
-    });
+    }
+  }
+
+  public dispose(): void {
+    this.currentComponent?.dispose?.();
+    this.commandPalette.dispose();
+    // Unsubscribe from feedbackBus
+  }
+
+  private renderCollaborationSection(headerLeft: HTMLElement, mainContent: HTMLElement): void {
+    const { userId } = userContext.get();
+
+    // Workspace switcher in the header
+    new WorkspaceSwitcher(headerLeft, userId);
+
+    // Container grouping collaboration tools
+    const collaborationSection = document.createElement('section');
+    collaborationSection.className = 'collaboration-section';
+    mainContent.appendChild(collaborationSection);
+
+    // Team Manager
+    const teamManagerContainer = document.createElement('div');
+    teamManagerContainer.className = 'team-manager-section';
+    collaborationSection.appendChild(teamManagerContainer);
+    new TeamManager(teamManagerContainer, MOCK_WORKSPACE_ID, userId);
+
+    // Workflow Review UI
+    const reviewUiContainer = document.createElement('div');
+    reviewUiContainer.className = 'workflow-review-section';
+    collaborationSection.appendChild(reviewUiContainer);
+    new WorkflowReviewUI(reviewUiContainer, MOCK_WORKSPACE_ID, userId, MOCK_WORKFLOW_ID);
   }
 }
 

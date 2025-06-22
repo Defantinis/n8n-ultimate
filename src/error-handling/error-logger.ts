@@ -805,23 +805,23 @@ export class AdvancedErrorLogger extends EventEmitter {
     const { endpoint, apiKey } = output;
     if (!endpoint) {
       console.error("Remote output is missing endpoint URL.");
-      return;
-    }
+        return;
+      }
 
     const headers: { [key: string]: string } = { 'Content-Type': 'application/json' };
     if (apiKey) {
       headers['Authorization'] = `Bearer ${apiKey}`;
     }
 
-    try {
+      try {
       await fetch(endpoint, {
-        method: 'POST',
+          method: 'POST',
         headers,
         body: JSON.stringify(entry),
-      });
-    } catch (error) {
+        });
+      } catch (error) {
       console.error(`Failed to send log to remote endpoint: ${(error as Error).message}`);
-    }
+      }
   }
 
   /**
@@ -846,10 +846,10 @@ export class AdvancedErrorLogger extends EventEmitter {
           category: entry.category,
           source: entry.source,
           tags: entry.metadata.tags.join(', '),
-        },
+          },
         user: { id: entry.context.userId, ip_address: entry.telemetry?.userInteraction.ipAddress },
         level: this.mapLogLevelToSentry(entry.level),
-      });
+        });
     }
   }
 
@@ -1024,16 +1024,16 @@ export class AdvancedErrorLogger extends EventEmitter {
   private initializeDefaultOutputs(): void {
     this.outputs = [
       {
-        type: 'console',
-        enabled: true,
-        level: LogLevel.INFO,
-        format: 'text'
+      type: 'console',
+      enabled: true,
+      level: LogLevel.INFO,
+      format: 'text'
       },
       {
-        type: 'file',
-        enabled: true,
-        level: LogLevel.DEBUG,
-        format: 'json',
+      type: 'file',
+      enabled: true,
+      level: LogLevel.DEBUG,
+      format: 'json',
         filePath: join(this.logDirectory, 'activity.log'),
         maxFileSize: 10, // 10 MB
         maxFiles: 5,

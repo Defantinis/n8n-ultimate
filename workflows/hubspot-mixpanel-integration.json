@@ -1,5 +1,5 @@
 {
-    "name": "My workflow 2",
+    "name": "HubSpot to Mixpanel Engagement Sync",
     "nodes": [
       {
         "parameters": {},
@@ -9,6 +9,35 @@
         "typeVersion": 1,
         "position": [
           -1000,
+          60
+        ]
+      },
+      {
+        "parameters": {
+          "values": {
+            "string": [
+              {
+                "name": "daysToSync",
+                "value": "30"
+              },
+              {
+                "name": "batchSize",
+                "value": "100"
+              },
+              {
+                "name": "mixpanelEventName",
+                "value": "Page View"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "config-node",
+        "name": "Workflow Config",
+        "type": "n8n-nodes-base.set",
+        "typeVersion": 1,
+        "position": [
+          -800,
           60
         ]
       },
@@ -36,8 +65,8 @@
         ],
         "credentials": {
           "hubspotAppToken": {
-            "id": "vfKljeOowtXMQOtI",
-            "name": "HubSpot account"
+            "id": "={{$credentials.HubSpot_App}}",
+            "name": "HubSpot App"
           }
         }
       },
@@ -57,20 +86,20 @@
         "type": "n8n-nodes-base.if",
         "typeVersion": 1,
         "position": [
-          -560,
+          -360,
           60
         ]
       },
       {
         "parameters": {
-          "jsCode": "// Transform HubSpot contacts for Mixpanel processing\nconst contacts = [];\n\nfor (const item of $input.all()) {\n  // Extract email value from HubSpot's nested structure\n  const emailValue = item.json.properties?.email?.value || item.json.properties?.email;\n  const firstnameValue = item.json.properties?.firstname?.value || item.json.properties?.firstname || '';\n  const lastnameValue = item.json.properties?.lastname?.value || item.json.properties?.lastname || '';\n  const lastModifiedValue = item.json.properties?.lastmodifieddate?.value || item.json.properties?.lastmodifieddate;\n  \n  const contact = {\n    hubspot_id: item.json.id || item.json['canonical-vid'] || item.json.vid,\n    customer_id: emailValue, // Use email as customer_id for Mixpanel integration\n    email: emailValue,\n    name: `${firstnameValue} ${lastnameValue}`.trim(),\n    current_page_views: item.json.properties?.mixpanel_page_views?.value || 0,\n    last_modified: lastModifiedValue\n  };\n  \n  // Validate required fields - only need valid email\n  if (contact.email && contact.email.includes('@')) {\n    contacts.push(contact);\n    console.log(`✅ Added contact: ${contact.name} (${contact.email})`);\n  } else {\n    console.log(`❌ Skipped contact: Missing or invalid email for ID ${contact.hubspot_id}`);\n  }\n}\n\nconsole.log(`Processing ${contacts.length} valid contacts out of ${$input.all().length} total`);\nreturn contacts.map(contact => ({ json: contact }));"
+          "jsCode": "// More robustly transform HubSpot contacts for Mixpanel processing\nconst contacts = [];\n\nfor (const item of $input.all()) {\n  const json = item.json || {};\n  const properties = json.properties || {};\n\n  // Extract email value from HubSpot's nested structure with extra safety\n  const emailValue = properties.email?.value || properties.email || null;\n  const firstnameValue = properties.firstname?.value || properties.firstname || '';\n  const lastnameValue = properties.lastname?.value || properties.lastname || '';\n  const lastModifiedValue = properties.lastmodifieddate?.value || properties.lastmodifieddate;\n  \n  const contact = {\n    hubspot_id: json.id || json['canonical-vid'] || json.vid,\n    customer_id: emailValue, // Use email as customer_id for Mixpanel integration\n    email: emailValue,\n    name: `${firstnameValue} ${lastnameValue}`.trim(),\n    current_page_views: properties.mixpanel_page_views?.value ?? 0,\n    last_modified: lastModifiedValue\n  };\n  \n  // Validate required fields - only need valid email\n  if (contact.email && contact.email.includes('@')) {\n    contacts.push(contact);\n    // console.log(`✅ Added contact: ${contact.name} (${contact.email})`);\n  } else {\n    console.warn(`❌ Skipped contact: Missing or invalid email for HubSpot ID ${contact.hubspot_id}`);\n  }\n}\n\nconsole.log(`Processing ${contacts.length} valid contacts out of ${$input.all().length} total`);\nreturn contacts.map(contact => ({ json: contact }));"
         },
         "id": "5d4931af-aa82-47ee-8e8a-28062a955cb3",
         "name": "Transform: Contact Data",
         "type": "n8n-nodes-base.code",
         "typeVersion": 1,
         "position": [
-          -340,
+          -140,
           -40
         ]
       },
@@ -83,7 +112,7 @@
         "type": "n8n-nodes-base.code",
         "typeVersion": 1,
         "position": [
-          -120,
+          80,
           -40
         ]
       },
@@ -104,13 +133,13 @@
         "type": "n8n-nodes-base.if",
         "typeVersion": 1,
         "position": [
-          80,
+          280,
           -40
         ]
       },
       {
         "parameters": {
-          "batchSize": 5,
+          "batchSize": "={{$node[\"Workflow Config\"].json.batchSize}}",
           "options": {}
         },
         "id": "067b1059-7d56-41d0-8713-e97780e0f032",
@@ -118,7 +147,21 @@
         "type": "n8n-nodes-base.splitInBatches",
         "typeVersion": 1,
         "position": [
-          260,
+          460,
+          -40
+        ]
+      },
+      {
+        "parameters": {
+          "time": 1,
+          "unit": "seconds"
+        },
+        "id": "wait-for-rate-limit",
+        "name": "Wait 1s",
+        "type": "n8n-nodes-base.wait",
+        "typeVersion": 1,
+        "position": [
+          480,
           -40
         ]
       },
@@ -132,7 +175,7 @@
             "parameters": [
               {
                 "name": "from_date",
-                "value": "={{ $now.minus({days: 30}).toFormat('yyyy-MM-dd') }}"
+                "value": "={{ $now.minus({days: $node[\"Workflow Config\"].json.daysToSync}).toFormat('yyyy-MM-dd') }}"
               },
               {
                 "name": "to_date",
@@ -140,7 +183,7 @@
               },
               {
                 "name": "event",
-                "value": "[\"Page View\"]"
+                "value": "[\"{{$node[\"Workflow Config\"].json.mixpanelEventName}}\"]"
               },
               {
                 "name": "where",
@@ -155,26 +198,26 @@
         "type": "n8n-nodes-base.httpRequest",
         "typeVersion": 3,
         "position": [
-          480,
+          700,
           -40
         ],
         "credentials": {
           "httpBasicAuth": {
-            "id": "GRbgePackzE8rwWp",
-            "name": "Mixpanel"
+            "id": "={{$credentials.Mixpanel_Credentials}}",
+            "name": "Mixpanel Credentials"
           }
         }
       },
       {
         "parameters": {
-          "jsCode": "// Process Mixpanel events and calculate page view metrics\nconst results = [];\n\nfor (const item of $input.all()) {\n  const customer = item.json;\n  const mixpanelResponse = customer.mixpanel_response || item.json;\n  \n  let pageViews = 0;\n  let uniquePages = new Set();\n  let lastPageView = null;\n  \n  try {\n    // Handle different response formats\n    if (typeof mixpanelResponse === 'string') {\n      // Parse newline-delimited JSON\n      const events = mixpanelResponse.split('\\n')\n        .filter(line => line.trim())\n        .map(line => JSON.parse(line))\n        .filter(event => event.event === 'Page View');\n      \n      pageViews = events.length;\n      \n      events.forEach(event => {\n        if (event.properties && event.properties.page_url) {\n          uniquePages.add(event.properties.page_url);\n        }\n        \n        const eventTime = event.properties.time || event.properties.$time;\n        if (eventTime && (!lastPageView || eventTime > lastPageView)) {\n          lastPageView = eventTime;\n        }\n      });\n    } else if (Array.isArray(mixpanelResponse)) {\n      // Handle array response\n      const pageViewEvents = mixpanelResponse.filter(event => event.event === 'Page View');\n      pageViews = pageViewEvents.length;\n      \n      pageViewEvents.forEach(event => {\n        if (event.properties && event.properties.page_url) {\n          uniquePages.add(event.properties.page_url);\n        }\n        \n        const eventTime = event.properties.time || event.properties.$time;\n        if (eventTime && (!lastPageView || eventTime > lastPageView)) {\n          lastPageView = eventTime;\n        }\n      });\n    }\n    \n  } catch (error) {\n    console.error(`Error processing events for ${customer.customer_id}:`, error);\n    // Continue with default values\n  }\n  \n  results.push({\n    json: {\n      hubspot_id: customer.hubspot_id,\n      customer_id: customer.customer_id,\n      email: customer.email,\n      page_views_30d: pageViews,\n      unique_pages_30d: uniquePages.size,\n      last_page_view: lastPageView,\n      previous_page_views: customer.current_page_views || 0,\n      page_view_change: pageViews - (customer.current_page_views || 0),\n      processed_at: new Date().toISOString()\n    }\n  });\n}\n\nconsole.log(`Processed page view data for ${results.length} customers`);\nreturn results;"
+          "jsCode": "// Process Mixpanel events and calculate page view metrics with enhanced validation\nconst results = [];\nconst eventName = $node[\"Workflow Config\"].json.mixpanelEventName || 'Page View';\n\nfor (const item of $input.all()) {\n  const customer = item.json;\n  const mixpanelResponse = customer.mixpanel_response || item.json;\n  \n  let pageViews = 0;\n  let uniquePages = new Set();\n  let lastPageView = null;\n  \n  try {\n    let events = [];\n    // Handle different response formats\n    if (typeof mixpanelResponse === 'string' && mixpanelResponse.trim()) {\n      // Parse newline-delimited JSON\n      events = mixpanelResponse.split('\\n')\n        .filter(line => line.trim())\n        .map(line => JSON.parse(line));\n\n    } else if (Array.isArray(mixpanelResponse)) {\n      events = mixpanelResponse;\n    }\n\n    const pageViewEvents = events.filter(event => event.event === eventName);\n    pageViews = pageViewEvents.length;\n      \n    pageViewEvents.forEach(event => {\n      const props = event.properties || {};\n      if (props.page_url) {\n        uniquePages.add(props.page_url);\n      }\n      \n      const eventTime = props.time || props.$time;\n      if (eventTime && (!lastPageView || eventTime > lastPageView)) {\n        lastPageView = eventTime;\n      }\n    });\n    \n  } catch (error) {\n    console.error(`Error processing events for ${customer.customer_id}:`, error.message);\n    console.error('Problematic Mixpanel Response:', mixpanelResponse);\n    // Continue with default values\n  }\n  \n  results.push({\n    json: {\n      hubspot_id: customer.hubspot_id,\n      customer_id: customer.customer_id,\n      email: customer.email,\n      page_views_30d: pageViews,\n      unique_pages_30d: uniquePages.size,\n      last_page_view: lastPageView,\n      previous_page_views: customer.current_page_views || 0,\n      page_view_change: pageViews - (customer.current_page_views || 0),\n      processed_at: new Date().toISOString()\n    }\n  });\n}\n\nconsole.log(`Processed page view data for ${results.length} customers`);\nreturn results;"
         },
         "id": "43677bcf-72d5-4c92-86a3-cfee64a2326d",
         "name": "Process: Page View Data",
         "type": "n8n-nodes-base.code",
         "typeVersion": 1,
         "position": [
-          700,
+          920,
           -40
         ]
       },
@@ -194,7 +237,7 @@
         "type": "n8n-nodes-base.if",
         "typeVersion": 1,
         "position": [
-          920,
+          1140,
           -40
         ]
       },
@@ -209,13 +252,13 @@
         "type": "n8n-nodes-base.hubspot",
         "typeVersion": 1,
         "position": [
-          1140,
+          1360,
           -40
         ],
         "credentials": {
           "hubspotAppToken": {
-            "id": "vfKljeOowtXMQOtI",
-            "name": "HubSpot account"
+            "id": "={{$credentials.HubSpot_App}}",
+            "name": "HubSpot App"
           }
         }
       },
@@ -228,13 +271,13 @@
         "type": "n8n-nodes-base.code",
         "typeVersion": 1,
         "position": [
-          1360,
+          1580,
           -40
         ]
       },
       {
         "parameters": {
-          "jsCode": "// Handle and log errors from the workflow with enhanced error detection\nconst inputData = $input.first()?.json || {};\n\n// Determine specific error type based on data structure\nlet errorMessage = 'Unknown error';\nlet errorType = 'Workflow Error';\n\n// Check if this is a contact missing mixpanel_customer_id (from filter failure)\nif (inputData.properties && !inputData.properties.mixpanel_customer_id) {\n  errorMessage = 'Contact missing mixpanel_customer_id field - filtered out as expected';\n  errorType = 'Filter Exclusion';\n} \n// Check for authentication failures\nelse if (inputData.mixpanel_auth_status === 'failed' || inputData.auth_error) {\n  errorMessage = inputData.auth_error || 'Mixpanel authentication failed';\n  errorType = 'Authentication Failed';\n}\n// Check for other specific error types\nelse if (inputData.error?.message) {\n  errorMessage = inputData.error.message;\n  errorType = 'Node Error';\n}\n\nconst errorInfo = {\n  workflow_name: 'HubSpot → Mixpanel Integration',\n  error_time: new Date().toISOString(),\n  error_node: 'Error Handler',\n  error_message: errorMessage,\n  error_type: errorType,\n  contact_info: {\n    email: inputData.properties?.email?.value || inputData.email || 'N/A',\n    name: `${inputData.properties?.firstname?.value || ''} ${inputData.properties?.lastname?.value || ''}`.trim() || 'N/A',\n    hubspot_id: inputData.vid || inputData['canonical-vid'] || inputData.id || 'N/A'\n  },\n  input_data: inputData,\n  node_count: $input.all().length\n};\n\n// Enhanced logging based on error type\nif (errorType === 'Filter Exclusion') {\n  console.log(`ℹ️ Contact filtered out: ${errorInfo.contact_info.name} (${errorInfo.contact_info.email}) - missing mixpanel_customer_id field`);\n} else if (errorType === 'Authentication Failed') {\n  console.error('🔑 Authentication failure detected - check Mixpanel credentials');\n  console.error('❌ Workflow Error:', JSON.stringify(errorInfo, null, 2));\n} else {\n  console.error('⚠️ Workflow error detected');\n  console.error('❌ Workflow Error:', JSON.stringify(errorInfo, null, 2));\n}\n\nreturn [{ json: errorInfo }];"
+          "jsCode": "// Handle and log errors from the workflow with enhanced error detection and context\nconst error = $input.first();\nconst inputData = error.json || {};\n\n// Determine specific error type based on data structure\nlet errorMessage = 'Unknown error occurred in the workflow.';\nlet errorType = 'GenericWorkflowError';\nlet suggestion = 'Check the workflow execution logs for details.';\n\n// Check for filter failure (no mixpanel_customer_id)\nif (inputData.properties && !inputData.properties.mixpanel_customer_id) {\n  errorMessage = `Contact with HubSpot ID ${inputData.id || inputData.vid} was filtered out as expected because the 'mixpanel_customer_id' field is empty.`;\n  errorType = 'FilterExclusion';\n  suggestion = 'This is usually normal. Ensure the contact has a `mixpanel_customer_id` in HubSpot if they should be processed.';\n} \n// Check for authentication failures from the dedicated test node\nelse if (inputData.mixpanel_auth_status === 'failed' || inputData.auth_error) {\n  errorMessage = inputData.auth_error || 'Mixpanel authentication failed during pre-flight check.';\n  errorType = 'AuthenticationFailed';\n  suggestion = 'Verify that your Mixpanel credentials are correct and have the necessary permissions.';\n}\n// Check for HTTP request failures\nelse if (inputData.error && inputData.error.code) {\n    errorMessage = `An API error occurred: ${inputData.error.message || 'No message'}. Status Code: ${inputData.error.code}`;\n    errorType = 'ApiError';\n    suggestion = `Check the API documentation for status code ${inputData.error.code} and review the request sent from the failing node.`\n}\n// Check for other code execution errors\nelse if (error.error) {\n  errorMessage = error.error.message;\n  errorType = 'NodeExecutionError';\n  suggestion = `A code error occurred in node '${error.execution.node.name}'. Check the node's code and input data.`;\n}\n\nconst errorInfo = {\n  workflow: {\n    name: 'HubSpot → Mixpanel Integration',\n    id: '{{$workflow.id}}',\n    executionId: '{{$execution.id}}'\n  },\n  error: {\n    type: errorType,\n    message: errorMessage,\n    suggestion: suggestion,\n    timestamp: new Date().toISOString(),\n    node: error.execution ? {\n      name: error.execution.node.name,\n      type: error.execution.node.type,\n      id: error.execution.node.id\n    } : { name: 'Unknown' }\n  },\n  context: {\n      hubspotId: inputData.id || inputData.vid || 'N/A',\n      email: inputData.properties?.email || inputData.email || 'N/A'\n  },\n  fullError: error\n};\n\n// More readable console output\nconsole.error(`\n🚨 WORKFLOW ERROR: ${errorInfo.error.type}\n--------------------------------------------------\n- Message: ${errorInfo.error.message}\n- Suggestion: ${errorInfo.error.suggestion}\n- Node: ${errorInfo.error.node.name} (${errorInfo.error.node.type})\n- HubSpot ID: ${errorInfo.context.hubspotId}\n- Email: ${errorInfo.context.email}\n- Timestamp: ${errorInfo.error.timestamp}\n--------------------------------------------------\n`);\n\nreturn [errorInfo];"
         },
         "id": "c25d6eed-b2ab-4409-9afe-5a5db843cb84",
         "name": "Error Handler",
@@ -249,139 +292,49 @@
     "pinData": {},
     "connections": {
       "Schedule Trigger": {
-        "main": [
-          [
-            {
-              "node": "HubSpot: Fetch Contacts",
-              "type": "main",
-              "index": 0
-            }
-          ]
-        ]
+        "main": [[{"node": "Workflow Config", "type": "main", "index": 0}]]
+      },
+      "Workflow Config": {
+        "main": [[{"node": "HubSpot: Fetch Contacts", "type": "main", "index": 0}]]
       },
       "HubSpot: Fetch Contacts": {
-        "main": [
-          [
-            {
-              "node": "Filter: Valid Customer IDs",
-              "type": "main",
-              "index": 0
-            }
-          ]
-        ]
+        "main": [[{"node": "Filter: Valid Customer IDs", "type": "main", "index": 0}]]
       },
       "Filter: Valid Customer IDs": {
         "main": [
-          [
-            {
-              "node": "Transform: Contact Data",
-              "type": "main",
-              "index": 0
-            }
-          ],
-          [
-            {
-              "node": "Error Handler",
-              "type": "main",
-              "index": 0
-            }
-          ]
+          [{"node": "Transform: Contact Data", "type": "main", "index": 0}],
+          [{"node": "Error Handler", "type": "main", "index": 0}]
         ]
       },
       "Transform: Contact Data": {
-        "main": [
-          [
-            {
-              "node": "Mixpanel: Test Auth",
-              "type": "main",
-              "index": 0
-            }
-          ]
-        ]
+        "main": [[{"node": "Mixpanel: Test Auth", "type": "main", "index": 0}]]
       },
       "Mixpanel: Test Auth": {
-        "main": [
-          [
-            {
-              "node": "Validate Auth Success",
-              "type": "main",
-              "index": 0
-            }
-          ]
-        ]
+        "main": [[{"node": "Validate Auth Success", "type": "main", "index": 0}]]
       },
       "Validate Auth Success": {
         "main": [
-          [
-            {
-              "node": "Split In Batches",
-              "type": "main",
-              "index": 0
-            }
-          ],
-          [
-            {
-              "node": "Error Handler",
-              "type": "main",
-              "index": 0
-            }
-          ]
+          [{"node": "Split In Batches", "type": "main", "index": 0}],
+          [{"node": "Error Handler", "type": "main", "index": 0}]
         ]
       },
       "Split In Batches": {
-        "main": [
-          [
-            {
-              "node": "Mixpanel: Fetch Page Views",
-              "type": "main",
-              "index": 0
-            }
-          ]
-        ]
+        "main": [[{"node": "Wait 1s", "type": "main", "index": 0}]]
+      },
+      "Wait 1s": {
+        "main": [[{"node": "Mixpanel: Fetch Page Views", "type": "main", "index": 0}]]
       },
       "Mixpanel: Fetch Page Views": {
-        "main": [
-          [
-            {
-              "node": "Process: Page View Data",
-              "type": "main",
-              "index": 0
-            }
-          ]
-        ]
+        "main": [[{"node": "Process: Page View Data", "type": "main", "index": 0}]]
       },
       "Process: Page View Data": {
-        "main": [
-          [
-            {
-              "node": "Filter: Changed Metrics",
-              "type": "main",
-              "index": 0
-            }
-          ]
-        ]
+        "main": [[{"node": "Filter: Changed Metrics", "type": "main", "index": 0}]]
       },
       "Filter: Changed Metrics": {
-        "main": [
-          [
-            {
-              "node": "HubSpot: Update Contact",
-              "type": "main",
-              "index": 0
-            }
-          ]
-        ]
+        "main": [[{"node": "HubSpot: Update Contact", "type": "main", "index": 0}]]
       },
       "HubSpot: Update Contact": {
-        "main": [
-          [
-            {
-              "node": "Log: Execution Summary",
-              "type": "main",
-              "index": 0
-            }
-          ]
-        ]
+        "main": [[{"node": "Log: Execution Summary", "type": "main", "index": 0}]]
       }
     },
     "active": false,

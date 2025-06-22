@@ -3,6 +3,7 @@ import { StreamingOllamaClient, StreamingConfig, StreamingRequest } from './stre
 import { WorkflowPlan, NodeSpecification } from '../types/n8n-workflow.js';
 import { N8nWorkflow, N8nNode } from '../types/n8n-workflow.js';
 import { EventEmitter } from 'events';
+import { feedbackBus } from '../dashboard/interactions/feedback-bus';
 
 export interface OptimizedAIConfig {
   ollamaBaseUrl?: string;
@@ -92,6 +93,30 @@ export class OptimizedAIAgent extends EventEmitter {
     this.streamingClient = new StreamingOllamaClient(streamingConfig);
     this.initializePromptTemplates();
     this.setupEventHandlers();
+    this.setupFeedbackListener();
+  }
+
+  /**
+   * Orchestrates the full workflow generation process from a simple description.
+   */
+  public async generateWorkflow(description: string): Promise<WorkflowPlan | null> {
+    console.log(`Generating workflow for: "${description}"`);
+    const requirements: WorkflowRequirements = {
+      description,
+      type: 'custom', // Default type, can be refined by analysis
+    };
+
+    try {
+      const analysis = await this.baseAgent.analyzeRequirements(requirements);
+      const plan = await this.baseAgent.planWorkflow(analysis);
+      console.log('Workflow plan generated successfully.');
+      // In a real implementation, you'd generate and validate the final JSON here.
+      return plan;
+    } catch (error) {
+      console.error('Error during workflow generation pipeline:', error);
+      this.metrics.errorRate = (this.metrics.errorRate + 1) / this.metrics.totalRequests;
+      return null;
+    }
   }
 
   /**
@@ -593,5 +618,14 @@ Keep the workflow practical and implementable.`);
         this.emit('streamingClientShutdown');
       });
     }
+  }
+
+  private setupFeedbackListener(): void {
+    feedbackBus.subscribe('userIntent', (intent: any) => {
+      console.log('AI Agent received user intent:', intent);
+      if (intent.type === 'GENERATE_WORKFLOW_FROM_GUIDE' || intent.type === 'QUICK_ACTION') {
+        this.generateWorkflow(intent.payload.description || 'user-initiated action');
+      }
+    });
   }
 } 

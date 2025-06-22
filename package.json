@@ -9,7 +9,8 @@
   },
   "scripts": {
     "build": "tsc",
-    "test": "npm run build && node dist/test-parser.js",
+    "test": "ts-node-esm scripts/test-runner.ts",
+    "e2e": "playwright test",
     "test-parser": "npm run build && node dist/test-parser.js",
     "dev": "tsc --watch"
   },
@@ -25,7 +26,9 @@
   "devDependencies": {
     "@types/node": "^20.19.1",
     "task-master-ai": "^0.17.1",
-    "typescript": "^5.0.0"
+    "typescript": "^5.0.0",
+    "ts-node": "^10.9.2",
+    "@playwright/test": "^1.44.0"
   },
   "dependencies": {
     "@sentry/node": "^9.30.0",

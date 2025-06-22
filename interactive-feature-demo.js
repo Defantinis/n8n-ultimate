@@ -1,320 +1,122 @@
 #!/usr/bin/env node
 
 const readline = require('readline');
+const { N8nUltimateDashboard } = require('./dist/src/dashboard/index.js');
+const { feedbackBus } = require('./dist/src/dashboard/interactions/feedback-bus.js');
+
+// Mock the DOM environment
+require('global-jsdom/register');
+
+// --- Mock AI Agent Listener ---
+feedbackBus.subscribe('userIntent', (intent) => {
+  console.log(`\n🤖 AI Agent received intent: ${intent.type}`);
+  console.log('   Payload:', intent.payload);
+  console.log('   (In a real scenario, this would trigger AI processing and update the UI)\n');
+});
+
+
+function setupDashboard() {
+  document.body.innerHTML = '<div id="dashboard-root"></div>';
+  const rootElement = document.getElementById('dashboard-root');
+  if (rootElement) {
+    return new N8nUltimateDashboard(rootElement, { enableRouting: true });
+  }
+  throw new Error('Dashboard root element not found');
+}
 
 const rl = readline.createInterface({
   input: process.stdin,
   output: process.stdout
 });
 
-// Simulated features and responses
-const TROUBLESHOOTING_SCENARIOS = {
-  "workflow fails": {
-    problem: "AI Workflow Generation Fails",
-    quickFix: "Be more specific - try: 'When Gmail receives invoice email, extract amount, create Airtable record if > $100'",
-    category: "AI Generation",
-    difficulty: "easy"
-  },
-  "slow performance": {
-    problem: "Slow Workflow Performance", 
-    quickFix: "Add pagination for API calls, use batch processing, implement caching",
-    category: "Performance",
-    difficulty: "hard"
-  },
-  "authentication error": {
-    problem: "API Credential Authentication Fails",
-    quickFix: "Reconnect credential, check permissions, clear browser cache for OAuth",
-    category: "Authentication", 
-    difficulty: "medium"
-  }
-};
-
-const GUIDE_SUGGESTIONS = {
-  "beginner": {
-    title: "5-Minute Quick Start",
-    steps: ["Enter workflow description", "Review AI-generated workflow", "Test with sample data", "Activate automation", "Monitor results"],
-    tip: "Start with simple descriptions like 'sync contacts between apps'"
-  },
-  "template": {
-    title: "Template Customization",
-    steps: ["Browse 50+ templates", "Select matching use case", "Import to editor", "Customize for your needs"],
-    tip: "Popular: Email automation, Data sync, Social media management"
-  },
-  "advanced": {
-    title: "AI Collaboration Mastery", 
-    steps: ["Learn interaction modes", "Optimize input descriptions", "Use iterative refinement"],
-    tip: "Expert mode: Specify exact node sequences and data transformations"
-  }
-};
-
-console.log(`
-🎮 **INTERACTIVE n8n ULTIMATE DEMO**
-===================================
-
-Welcome to our AI-powered automation system!
-Let's test our coolest features interactively...
-
-🎯 **AVAILABLE DEMOS:**
-1. 🛠 Smart Troubleshooting Assistant
-2. 📚 Personalized Learning Guide
-3. 🔧 AI Workflow Generator Simulator  
-4. 🧠 Task Management with Local AI
-5. 🔍 Research Assistant Demo
-
-`);
-
-function askFeatureChoice() {
-  rl.question('Which feature would you like to demo? (1-5 or type "exit"): ', (choice) => {
-    switch(choice.trim()) {
-      case '1':
-        runTroubleshootingDemo();
-        break;
-      case '2':
-        runLearningGuideDemo();
-        break;
-      case '3':
-        runWorkflowGeneratorDemo();
-        break;
-      case '4':
-        runTaskManagementDemo();
-        break;
-      case '5':
-        runResearchDemo();
-        break;
-      case 'exit':
-        console.log('Thanks for trying n8n Ultimate! 🚀');
-        rl.close();
-        break;
-      default:
-        console.log('Please enter 1-5 or "exit"');
-        askFeatureChoice();
+const DEMO_STEPS = [
+  // Guided Mode for Brenda
+  {
+    persona: 'Brenda (Business Automator)',
+    description: "Start with Guided Mode. Navigate to '#/guided-generation'.",
+    action: () => {
+      window.location.hash = '#/guided-generation';
+      console.log(document.body.innerHTML);
     }
-  });
-}
-
-function runTroubleshootingDemo() {
-  console.log(`
-🛠 **SMART TROUBLESHOOTING ASSISTANT**
-====================================
-
-Our AI analyzes your problem and provides instant solutions!
-Try describing an issue you're having...
-
-Examples:
-• "My workflow fails to generate"
-• "The system is running slow"  
-• "I'm getting authentication errors"
-`);
-
-  rl.question('Describe your problem: ', (problem) => {
-    const lowerProblem = problem.toLowerCase();
-    let match = null;
-    
-    // Simple keyword matching for demo
-    for (const [key, scenario] of Object.entries(TROUBLESHOOTING_SCENARIOS)) {
-      if (lowerProblem.includes(key)) {
-        match = scenario;
-        break;
+  },
+  {
+    description: "Brenda describes her workflow idea.",
+    action: () => {
+      const textarea = document.getElementById('workflow-idea');
+      const nextButton = document.querySelector('[data-action="next"]');
+      if (textarea && nextButton) {
+        textarea.value = 'When a new HubSpot contact is created, send a welcome email via Mailchimp';
+        nextButton.click();
+        console.log(document.body.innerHTML);
       }
     }
-    
-    if (match) {
-      console.log(`
-✅ **PROBLEM IDENTIFIED:** ${match.problem}
-📊 **Category:** ${match.category} | **Difficulty:** ${match.difficulty}
-
-🚀 **QUICK FIX:**
-${match.quickFix}
-
-💡 **AI RECOMMENDATION:**
-Based on your issue, I suggest checking our ${match.category} guide section.
-This is a ${match.difficulty} level fix - would you like detailed steps?
-`);
-    } else {
-      console.log(`
-🤖 **AI ANALYSIS:**
-I don't have a specific match for "${problem}", but I can help!
-
-🔍 **DIAGNOSTIC SUGGESTIONS:**
-• Check the execution logs for error details
-• Verify all credentials are properly connected  
-• Test with simplified workflow first
-• Monitor system resources
-
-Would you like me to run a full diagnostic scan?
-`);
+  },
+   {
+    description: "Brenda reviews the AI-suggested nodes and proceeds.",
+    action: () => {
+      // Simulate AI providing nodes
+      const nodesDiv = document.getElementById('suggested-nodes');
+      if(nodesDiv) nodesDiv.innerHTML = '<p>Nodes: HubSpot Trigger, Mailchimp Send Email</p>';
+      
+      const nextButton = document.querySelector('[data-action="next"]');
+      if(nextButton) nextButton.click();
+      console.log(document.body.innerHTML);
     }
-    
-    setTimeout(() => {
-      console.log('\n🔄 Returning to main menu...\n');
-      askFeatureChoice();
-    }, 3000);
-  });
-}
-
-function runLearningGuideDemo() {
-  console.log(`
-📚 **PERSONALIZED LEARNING GUIDE**
-=================================
-
-Our progressive learning system adapts to your level!
-`);
-
-  rl.question('What\'s your experience level? (beginner/intermediate/expert): ', (level) => {
-    let guide = GUIDE_SUGGESTIONS.beginner;
-    
-    if (level.toLowerCase().includes('template') || level.toLowerCase().includes('inter')) {
-      guide = GUIDE_SUGGESTIONS.template;
-    } else if (level.toLowerCase().includes('expert') || level.toLowerCase().includes('adv')) {
-      guide = GUIDE_SUGGESTIONS.advanced;
+  },
+   {
+    description: "Brenda sees the validated workflow and activates it.",
+    action: () => {
+      const activateButton = document.querySelector('[data-action="activate"]');
+      if (activateButton) activateButton.click();
+      console.log(document.body.innerHTML);
     }
-    
-    console.log(`
-🎯 **RECOMMENDED GUIDE:** ${guide.title}
+  },
+  // Expert Mode for Paul
+  {
+    persona: 'Paul (Rapid Prototyper)',
+    description: "Switch to Expert Mode. Paul opens the Command Palette (Ctrl+K).",
+    action: () => {
+      // In a real browser, a keydown event would do this. We'll call the method directly.
+      dashboard.commandPalette.toggle();
+      console.log(document.body.innerHTML);
+    }
+  },
+  {
+    description: "Paul types 'template' to filter commands and selects 'View Templates'.",
+    action: () => {
+       dashboard.commandPalette.filterCommands('template');
+       dashboard.commandPalette.selectCommand(0); // Assume 'View Templates' is the first match
+       console.log(document.body.innerHTML);
+    }
+  },
+];
 
-📋 **LEARNING PATH:**
-${guide.steps.map((step, i) => `${i + 1}. ${step}`).join('\n')}
+let currentStep = 0;
+const dashboard = setupDashboard();
 
-💡 **PRO TIP:** ${guide.tip}
+function runStep() {
+  if (currentStep >= DEMO_STEPS.length) {
+    console.log('\n✅ Demo complete! Thank you for watching.');
+    rl.close();
+    process.exit();
+  }
 
-🚀 **READY TO START?**
-This guide includes:
-• Interactive step-by-step instructions
-• Code examples and best practices  
-• Troubleshooting for common issues
-• Progressive skill building
-`);
-    
-    setTimeout(() => {
-      console.log('\n🔄 Returning to main menu...\n');
-      askFeatureChoice();
-    }, 3000);
-  });
-}
-
-function runWorkflowGeneratorDemo() {
-  console.log(`
-🔧 **AI WORKFLOW GENERATOR SIMULATOR**
-====================================
-
-Describe your automation idea and watch our AI create it!
-`);
-
-  rl.question('Describe the workflow you want to create: ', (description) => {
-    console.log(`
-🧠 **AI PROCESSING YOUR REQUEST...**
-analyzing: "${description}"
-
-⚡ **WORKFLOW GENERATED:**
-
-┌─ TRIGGER: ${description.includes('email') ? 'Gmail Webhook' : description.includes('form') ? 'Webhook Form' : 'Schedule Trigger'}
-│
-├─ PROCESS: Data Extraction & Validation
-│  └─ Parse incoming data
-│  └─ Validate required fields
-│  └─ Transform data format
-│
-├─ LOGIC: Conditional Routing
-│  └─ Apply business rules
-│  └─ Route based on conditions
-│
-└─ ACTIONS: ${description.includes('slack') ? 'Send Slack Message' : description.includes('email') ? 'Send Email' : 'Update Database'}
-   └─ Error handling & logging
-   └─ Success confirmation
-
-🎯 **SMART FEATURES ADDED:**
-• Automatic error handling
-• Data validation & transformation  
-• Retry logic for network failures
-• Logging for debugging
-
-💡 **AI SUGGESTION:** 
-"Your workflow looks good! I added error handling and data validation. 
-Would you like me to optimize it for performance or add additional features?"
-`);
-    
-    setTimeout(() => {
-      console.log('\n🔄 Returning to main menu...\n');
-      askFeatureChoice();
-    }, 3000);
-  });
-}
-
-function runTaskManagementDemo() {
-  console.log(`
-📊 **TASK MANAGEMENT WITH LOCAL AI**
-===================================
-
-Our system uses YOUR local PHI4 model for task management!
-
-🧠 **CURRENT AI CONFIG:**
-• Main Model: PHI4 Latest (Local)
-• Research Model: DeepSeek R1 1.5B (Local)  
-• Fallback: Claude Sonnet (API)
-• Cost: $0.00 for local processing
-
-🎯 **LIVE TASK STATUS:**
-• Phase 2 Tasks: 10 total (1 in-progress, 9 pending)
-• Subtask Progress: 4/6 completed in Task #1
-• Next Recommended: Complete Task 1.3 (Design Workflow Templates)
-
-📈 **AI-POWERED FEATURES:**
-• Intelligent task breakdown
-• Complexity analysis & scoring
-• Smart dependency management
-• Research integration for task context
-`);
+  const step = DEMO_STEPS[currentStep];
   
-  setTimeout(() => {
-    console.log('\n🔄 Returning to main menu...\n');
-    askFeatureChoice();
-  }, 3000);
-}
-
-function runResearchDemo() {
-  console.log(`
-🔍 **AI RESEARCH ASSISTANT DEMO**
-===============================
-
-Our research system gets FRESH data beyond AI training!
-`);
-
-  rl.question('What would you like to research? ', (query) => {
-    console.log(`
-🧠 **RESEARCHING:** "${query}"
-Using DeepSeek R1 1.5B model for real-time analysis...
-
-📊 **RESEARCH RESULTS:**
-
-🔥 **KEY FINDINGS:**
-• Latest best practices and trends
-• Current industry standards  
-• Recent updates and changes
-• Practical implementation examples
-
-📈 **INSIGHTS:**
-• Technology adoption patterns
-• Performance benchmarks
-• Security considerations  
-• Integration compatibility
-
-💾 **AUTO-SAVED TO:**
-• Research file: .taskmaster/docs/research/
-• Task integration: Available for linking
-• Context preservation: For future queries
-
-🚀 **NEXT ACTIONS:**
-• Apply findings to current tasks
-• Update project documentation
-• Share insights with team
-`);
-    
-    setTimeout(() => {
-      console.log('\n🔄 Returning to main menu...\n');
-      askFeatureChoice();
-    }, 3000);
+  console.log('---');
+  if (step.persona) console.log(`\n👤 Persona: ${step.persona}`);
+  console.log(`\n➡️  Step ${currentStep + 1}: ${step.description}`);
+  
+  step.action();
+  
+  currentStep++;
+  
+  rl.question('\nPress Enter to continue to the next step...', () => {
+    runStep();
   });
 }
 
-// Start the demo
-askFeatureChoice(); 
+console.log('🚀 Welcome to the n8n Ultimate Interactive Feature Demo!');
+console.log('This script will walk you through key features from the perspective of our user personas.');
+
+runStep(); 
