@@ -1,0 +1,454 @@
+{
+  "name": "HubSpot → Mixpanel Integration",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 2
+            }
+          ]
+        }
+      },
+      "id": "trigger-schedule",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [
+        240,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "resource": "contact",
+        "returnAll": true,
+        "additionalFields": {
+          "properties": [
+            "email",
+            "firstname", 
+            "lastname",
+            "customer_id",
+            "mixpanel_page_views",
+            "lastmodifieddate"
+          ]
+        },
+        "filters": {
+          "filterGroups": [
+            {
+              "filters": [
+                {
+                  "propertyName": "lastmodifieddate",
+                  "operator": "GTE",
+                  "value": "{{ $workflow.lastExecutionTime }}"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "id": "hubspot-fetch-contacts",  
+      "name": "HubSpot: Fetch Contacts",
+      "type": "n8n-nodes-base.hubspot",
+      "typeVersion": 1,
+      "position": [
+        460,
+        300
+      ],
+      "credentials": {
+        "hubspotApi": {
+          "id": "hubspot-credentials",
+          "name": "HubSpot API Credentials"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.properties.customer_id }}",
+              "operation": "isNotEmpty"
+            }
+          ]
+        }
+      },
+      "id": "filter-valid-customers",
+      "name": "Filter: Valid Customer IDs",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        680,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Transform HubSpot contacts for Mixpanel processing\nconst contacts = [];\n\nfor (const item of $input.all()) {\n  const contact = {\n    hubspot_id: item.json.id,\n    customer_id: item.json.properties.customer_id,\n    email: item.json.properties.email,\n    name: `${item.json.properties.firstname || ''} ${item.json.properties.lastname || ''}`.trim(),\n    current_page_views: item.json.properties.mixpanel_page_views || 0,\n    last_modified: item.json.properties.lastmodifieddate\n  };\n  \n  // Validate required fields\n  if (contact.customer_id && contact.email) {\n    contacts.push(contact);\n  }\n}\n\nconsole.log(`Processing ${contacts.length} valid contacts`);\nreturn contacts.map(contact => ({ json: contact }));"
+      },
+      "id": "transform-contact-data",
+      "name": "Transform: Contact Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        900,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "requestMethod": "POST",
+        "url": "https://mixpanel.com/api/2.0/engage",
+        "options": {
+          "headers": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              }
+            ]
+          },
+          "bodyParameters": {
+            "entries": [
+              {
+                "name": "data",
+                "value": "={{ JSON.stringify({\"$distinct_id\": $json.customer_id}) }}"
+              }
+            ]
+          }
+        }
+      },
+      "id": "mixpanel-auth-test",
+      "name": "Mixpanel: Test Auth",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        1120,
+        220
+      ],
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "mixpanel-service-account",
+          "name": "Mixpanel Service Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "batchSize": 10,
+        "options": {}
+      },
+      "id": "split-in-batches",
+      "name": "Split In Batches",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 1,
+      "position": [
+        1340,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "requestMethod": "POST", 
+        "url": "https://mixpanel.com/api/2.0/export",
+        "options": {
+          "headers": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              }
+            ]
+          },
+          "bodyParameters": {
+            "entries": [
+              {
+                "name": "project_id",
+                "value": "{{ $env.MIXPANEL_PROJECT_ID }}"
+              },
+              {
+                "name": "from_date",
+                "value": "{{ $now.minus({days: 30}).toFormat('yyyy-MM-dd') }}"
+              },
+              {
+                "name": "to_date", 
+                "value": "{{ $now.toFormat('yyyy-MM-dd') }}"
+              },
+              {
+                "name": "event",
+                "value": "[\"Page View\"]"
+              },
+              {
+                "name": "where",
+                "value": "={{ JSON.stringify({\"distinct_id\": $json.customer_id}) }}"
+              }
+            ]
+          }
+        }
+      },
+      "id": "mixpanel-fetch-events",
+      "name": "Mixpanel: Fetch Page Views",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        1560,
+        220
+      ],
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "mixpanel-service-account",
+          "name": "Mixpanel Service Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Process Mixpanel events and calculate page view metrics\nconst results = [];\n\nfor (const item of $input.all()) {\n  const customer = item.json;\n  const mixpanelResponse = customer.mixpanel_response || item.json;\n  \n  let pageViews = 0;\n  let uniquePages = new Set();\n  let lastPageView = null;\n  \n  try {\n    // Parse Mixpanel response (typically newline-delimited JSON)\n    const events = mixpanelResponse.split('\\n')\n      .filter(line => line.trim())\n      .map(line => JSON.parse(line))\n      .filter(event => event.event === 'Page View');\n    \n    pageViews = events.length;\n    \n    events.forEach(event => {\n      if (event.properties.page_url) {\n        uniquePages.add(event.properties.page_url);\n      }\n      \n      const eventTime = event.properties.time || event.properties.$time;\n      if (eventTime && (!lastPageView || eventTime > lastPageView)) {\n        lastPageView = eventTime;\n      }\n    });\n    \n  } catch (error) {\n    console.error(`Error processing events for ${customer.customer_id}:`, error);\n  }\n  \n  results.push({\n    json: {\n      hubspot_id: customer.hubspot_id,\n      customer_id: customer.customer_id,\n      email: customer.email,\n      page_views_30d: pageViews,\n      unique_pages_30d: uniquePages.size,\n      last_page_view: lastPageView,\n      previous_page_views: customer.current_page_views,\n      page_view_change: pageViews - (customer.current_page_views || 0),\n      processed_at: new Date().toISOString()\n    }\n  });\n}\n\nconsole.log(`Processed page view data for ${results.length} customers`);\nreturn results;"
+      },
+      "id": "process-page-view-data",
+      "name": "Process: Page View Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        1780,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{ $json.page_view_change }}",
+              "operation": "notEqual",
+              "value2": 0
+            }
+          ]
+        }
+      },
+      "id": "filter-changed-metrics",
+      "name": "Filter: Changed Metrics",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        2000,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "resource": "contact",
+        "contactId": "={{ $json.hubspot_id }}",
+        "updateFields": {
+          "customProperties": {
+            "property": [
+              {
+                "name": "mixpanel_page_views",
+                "value": "={{ $json.page_views_30d }}"
+              },
+              {
+                "name": "mixpanel_unique_pages",
+                "value": "={{ $json.unique_pages_30d }}"
+              },
+              {
+                "name": "mixpanel_last_page_view",
+                "value": "={{ $json.last_page_view }}"
+              },
+              {
+                "name": "mixpanel_sync_date",
+                "value": "={{ $json.processed_at }}"
+              }
+            ]
+          }
+        }
+      },
+      "id": "hubspot-update-contact",
+      "name": "HubSpot: Update Contact",
+      "type": "n8n-nodes-base.hubspot",
+      "typeVersion": 1,
+      "position": [
+        2220,
+        140
+      ],
+      "credentials": {
+        "hubspotApi": {
+          "id": "hubspot-credentials",
+          "name": "HubSpot API Credentials"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Log successful updates and generate summary\nconst updates = $input.all();\nconst summary = {\n  total_contacts_processed: updates.length,\n  successful_updates: updates.filter(item => !item.json.error).length,\n  failed_updates: updates.filter(item => item.json.error).length,\n  total_page_views: updates.reduce((sum, item) => sum + (item.json.page_views_30d || 0), 0),\n  execution_time: new Date().toISOString()\n};\n\nconsole.log('HubSpot → Mixpanel Integration Summary:', JSON.stringify(summary, null, 2));\n\n// Log any errors\nupdates.filter(item => item.json.error).forEach(item => {\n  console.error(`Failed to update contact ${item.json.customer_id}:`, item.json.error);\n});\n\nreturn [{ json: summary }];"
+      },
+      "id": "log-summary",
+      "name": "Log: Execution Summary",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        2440,
+        140
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Handle and log errors from the workflow\nconst errorInfo = {\n  workflow_name: 'HubSpot → Mixpanel Integration',\n  error_time: new Date().toISOString(),\n  error_node: $node.name,\n  error_message: $input.first()?.json?.error?.message || 'Unknown error',\n  input_data: $input.first()?.json || {},\n  execution_id: $execution.id\n};\n\nconsole.error('Workflow Error:', JSON.stringify(errorInfo, null, 2));\n\n// You could also send to monitoring service here\n// await sendToMonitoring(errorInfo);\n\nreturn [{ json: errorInfo }];"
+      },
+      "id": "error-handler",
+      "name": "Error Handler",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        2000,
+        400
+      ]
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "HubSpot: Fetch Contacts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HubSpot: Fetch Contacts": {
+      "main": [
+        [
+          {
+            "node": "Filter: Valid Customer IDs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter: Valid Customer IDs": {
+      "main": [
+        [
+          {
+            "node": "Transform: Contact Data",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error Handler",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transform: Contact Data": {
+      "main": [
+        [
+          {
+            "node": "Mixpanel: Test Auth",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mixpanel: Test Auth": {
+      "main": [
+        [
+          {
+            "node": "Split In Batches",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split In Batches": {
+      "main": [
+        [
+          {
+            "node": "Mixpanel: Fetch Page Views",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mixpanel: Fetch Page Views": {
+      "main": [
+        [
+          {
+            "node": "Process: Page View Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process: Page View Data": {
+      "main": [
+        [
+          {
+            "node": "Filter: Changed Metrics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter: Changed Metrics": {
+      "main": [
+        [
+          {
+            "node": "HubSpot: Update Contact",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HubSpot: Update Contact": {
+      "main": [
+        [
+          {
+            "node": "Log: Execution Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": "error-handler"
+  },
+  "versionId": "1",
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "instanceId": "n8n-ultimate-generated"
+  },
+  "id": "hubspot-mixpanel-integration",
+  "tags": [
+    "hubspot",
+    "mixpanel", 
+    "crm",
+    "analytics",
+    "integration"
+  ]
+} 
