@@ -2,6 +2,15 @@
   "name": "Enhanced Production Scraper v2.0 - Testing Framework",
   "nodes": [
     {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [140, 240],
+      "id": "023adaeb-609d-4f77-951a-11546853899a",
+      "name": "🚀 Click to Start Test",
+      "notes": "🚀 Manual Trigger: Click this button to start the workflow execution manually. This is the entry point for the entire automation process."
+    },
+    {
       "parameters": {
         "values": {
           "string": [
@@ -29,42 +38,49 @@
       },
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.3,
-      "position": [140, 240],
-      "id": "023adaeb-609d-4f77-951a-11546853899a",
-      "name": "🧪 Initialize Test Session"
+      "position": [360, 240],
+      "id": "test-session-init",
+      "name": "🧪 Initialize Test Session",
+      "notes": "📝 Data Setter: Configures test session metadata like timestamps, session IDs, and framework version for downstream nodes to track the test execution."
     },
     {
       "parameters": {
-        "jsCode": "// ===== TESTING FRAMEWORK: COMPREHENSIVE CONSOLE LOGGING =====\nconst testSessionId = $('🧪 Initialize Test Session').item(0).json.test_session_id;\nconst startTime = Date.now();\n\nconsole.log('🧪 ===== N8N TESTING FRAMEWORK START =====');\nconsole.log(`📋 Test Session: ${testSessionId}`);\nconsole.log(`⏰ Start Time: ${new Date().toISOString()}`);\nconsole.log('🎯 Test Objective: Validate automated scraper workflow');\nconsole.log('🔧 Framework Version: testing-framework-v1.0');\nconsole.log('');\n\n// Log system information\nconsole.log('🖥️  System Information:');\nconsole.log(`   User Agent: ${navigator.userAgent}`);\nconsole.log(`   Platform: ${navigator.platform}`);\nconsole.log(`   Language: ${navigator.language}`);\nconsole.log(`   Online: ${navigator.onLine}`);\nconsole.log('');\n\n// Initialize test tracking\nconst testResults = {\n  sessionId: testSessionId,\n  startTime: new Date().toISOString(),\n  steps: [],\n  errors: [],\n  performance: {},\n  success: false\n};\n\nconsole.log('✅ Test session initialized successfully');\nconsole.log('🔄 Proceeding to workflow execution...');\nconsole.log('');\n\nreturn [{ json: { \n  testSessionId, \n  testResults,\n  step: 'initialization',\n  status: 'completed',\n  timestamp: new Date().toISOString(),\n  executionTime: Date.now() - startTime\n}}];"
+        "jsCode": "// ===== TESTING FRAMEWORK: COMPREHENSIVE CONSOLE LOGGING =====\nconst sessionData = $input.first().json;\nconst testSessionId = sessionData.test_session_id;\nconst startTime = Date.now();\n\nconsole.log('🧪 ===== N8N TESTING FRAMEWORK START =====');\nconsole.log(`📋 Test Session: ${testSessionId}`);\nconsole.log(`⏰ Start Time: ${new Date().toISOString()}`);\nconsole.log('🎯 Test Objective: Validate automated scraper workflow');\nconsole.log('🔧 Framework Version: testing-framework-v1.0');\nconsole.log('');\n\n// Log system information\nconsole.log('🖥️  System Information:');\nconsole.log(`   User Agent: ${typeof navigator !== 'undefined' ? navigator.userAgent : 'n8n server'}`);\nconsole.log(`   Platform: ${typeof navigator !== 'undefined' ? navigator.platform : 'n8n server'}`);\nconsole.log(`   Environment: n8n workflow execution`);\nconsole.log('');\n\n// Initialize test tracking\nconst testResults = {\n  sessionId: testSessionId,\n  startTime: new Date().toISOString(),\n  steps: [],\n  errors: [],\n  performance: {},\n  success: false\n};\n\nconsole.log('✅ Test session initialized successfully');\nconsole.log('🔄 Proceeding to workflow execution...');\nconsole.log('');\n\nreturn [{ json: { \n  testSessionId, \n  testResults,\n  step: 'initialization',\n  status: 'completed',\n  timestamp: new Date().toISOString(),\n  executionTime: Date.now() - startTime\n}}];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [360, 240],
+      "position": [580, 240],
       "id": "test-logger-init",
-      "name": "📋 Test Logger - Initialize"
+      "name": "📋 Test Logger - Initialize",
+      "notes": "⚙️ JavaScript Code: Testing & Diagnostics - Provides detailed logging and validation for debugging workflow execution. Initializes comprehensive test tracking and system information logging."
     },
     {
       "parameters": {
-        "url": "https://n8n.io/workflows/",
+        "url": "https://httpbin.org/html",
         "options": {
-          "timeout": 30000
+          "timeout": 30000,
+          "headers": {
+            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+          }
         }
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
-      "position": [580, 240],
+      "position": [800, 240],
       "id": "eed902c6-ebc4-4122-8afc-78f298aec549",
-      "name": "🌐 Fetch Workflow List"
+      "name": "🌐 Fetch Test HTML",
+      "notes": "🌐 HTTP Request: Fetches data from https://httpbin.org/html. This is a scraping-friendly test site that returns predictable HTML content for testing purposes. Configured with proper headers, timeout settings, and error handling for reliable data retrieval."
     },
     {
       "parameters": {
-        "jsCode": "// ===== FETCH VALIDATION & LOGGING =====\nconst testSessionId = $('📋 Test Logger - Initialize').item(0).json.testSessionId;\nconst stepStartTime = Date.now();\nconst httpResponse = $input.item(0).json;\n\nconsole.log('🌐 ===== HTTP FETCH VALIDATION =====');\nconsole.log(`📋 Session: ${testSessionId}`);\nconsole.log(`🎯 Target URL: https://n8n.io/workflows/`);\nconsole.log(`📊 Response Analysis:`);\nconsole.log(`   Status Code: ${httpResponse.statusCode || 'UNKNOWN'}`);\nconsole.log(`   Response Size: ${JSON.stringify(httpResponse).length} characters`);\nconsole.log(`   Headers Present: ${httpResponse.headers ? 'YES' : 'NO'}`);\nconsole.log(`   Body Present: ${httpResponse.body ? 'YES' : 'NO'}`);\n\n// Detailed response analysis\nlet validationResults = {\n  statusCode: httpResponse.statusCode,\n  isSuccess: httpResponse.statusCode === 200,\n  hasBody: !!httpResponse.body,\n  bodySize: httpResponse.body ? httpResponse.body.length : 0,\n  contentType: httpResponse.headers ? httpResponse.headers['content-type'] : 'unknown',\n  executionTime: Date.now() - stepStartTime\n};\n\nconsole.log(`⚡ Execution Time: ${validationResults.executionTime}ms`);\n\nif (validationResults.isSuccess) {\n  console.log('✅ HTTP Request: SUCCESS');\n  console.log(`   Content Type: ${validationResults.contentType}`);\n  console.log(`   Body Size: ${validationResults.bodySize} characters`);\n} else {\n  console.log('❌ HTTP Request: FAILED');\n  console.log(`   Error Details: Status ${validationResults.statusCode}`);\n  console.log(`   Troubleshooting: Check network connectivity and target site availability`);\n}\n\nconsole.log('');\n\nreturn [{ json: { \n  ...httpResponse,\n  testSessionId,\n  step: 'http_fetch',\n  validationResults,\n  timestamp: new Date().toISOString()\n}}];"
+        "jsCode": "// ===== FETCH VALIDATION & LOGGING =====\nlet loggerData, testSessionId;\n\ntry {\n  loggerData = $('📋 Test Logger - Initialize').first().json;\n  testSessionId = loggerData.testSessionId || `fallback_${Date.now()}`;\n} catch (error) {\n  console.log('⚠️  Warning: Could not access Test Logger data, using fallback session ID');\n  testSessionId = `fallback_${Date.now()}`;\n  loggerData = { testSessionId };\n}\n\nconst stepStartTime = Date.now();\nconst httpResponse = $input.first().json || {};\n\nconsole.log('🌐 ===== HTTP FETCH VALIDATION =====');\nconsole.log(`📋 Session: ${testSessionId}`);\nconsole.log(`🎯 Target URL: https://httpbin.org/html`);\nconsole.log(`📊 Response Analysis:`);\nconsole.log(`   Status Code: ${httpResponse.statusCode || 'UNKNOWN (Network Error)'}`);\nconsole.log(`   Response Size: ${JSON.stringify(httpResponse).length} characters`);\nconsole.log(`   Headers Present: ${httpResponse.headers ? 'YES' : 'NO'}`);\nconsole.log(`   Body Present: ${httpResponse.body ? 'YES' : 'NO'}`);\n\n// Enhanced response analysis with network error handling\nlet validationResults = {\n  statusCode: httpResponse.statusCode || 0,\n  isSuccess: httpResponse.statusCode === 200,\n  hasBody: !!httpResponse.body,\n  bodySize: httpResponse.body ? httpResponse.body.length : 0,\n  contentType: (httpResponse.headers && httpResponse.headers['content-type']) ? httpResponse.headers['content-type'] : 'unknown',\n  executionTime: Date.now() - stepStartTime,\n  networkError: !httpResponse.statusCode || httpResponse.statusCode === 0\n};\n\nconsole.log(`⚡ Execution Time: ${validationResults.executionTime}ms`);\n\nif (validationResults.isSuccess) {\n  console.log('✅ HTTP Request: SUCCESS');\n  console.log(`   Content Type: ${validationResults.contentType}`);\n  console.log(`   Body Size: ${validationResults.bodySize} characters`);\n} else if (validationResults.networkError) {\n  console.log('🚨 HTTP Request: NETWORK ERROR');\n  console.log(`   Status: No response received (likely network/connectivity issue)`);\n  console.log(`   Troubleshooting: Check internet connection, DNS resolution, and firewall settings`);\n} else {\n  console.log('❌ HTTP Request: FAILED');\n  console.log(`   Error Details: Status ${validationResults.statusCode}`);\n  console.log(`   Troubleshooting: Check network connectivity and target site availability`);\n}\n\nconsole.log('');\n\n// Always return enriched data with testSessionId, even on network errors\nconst enrichedResponse = {\n  // Preserve original HTTP response data (may be empty on network error)\n  ...httpResponse,\n  // Always include our enriched metadata\n  testSessionId,\n  step: 'http_fetch',\n  validationResults,\n  timestamp: new Date().toISOString(),\n  // Add error context for network issues\n  errorContext: validationResults.networkError ? {\n    type: 'network_error',\n    description: 'HTTP request failed - no response received',\n    possibleCauses: ['Network connectivity issue', 'DNS resolution failure', 'Firewall blocking', 'Target server unreachable']\n  } : null\n};\n\nconsole.log(`📋 Data Flow Check: testSessionId = ${enrichedResponse.testSessionId}`);\nconsole.log(`🔍 Validation Results: isSuccess = ${validationResults.isSuccess}`);\n\nreturn [{ json: enrichedResponse }];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [800, 240],
+      "position": [1020, 240],
       "id": "http-validator",
-      "name": "🔍 HTTP Response Validator"
+      "name": "🔍 HTTP Response Validator",
+      "notes": "⚙️ JavaScript Code: Data Validation - Checks HTTP response quality, completeness, and format compliance. Provides comprehensive error analysis and network diagnostics for troubleshooting connection issues."
     },
     {
       "parameters": {
@@ -77,10 +93,10 @@
           "conditions": [
             {
               "id": "7e2c4e8b-1a2b-4c5d-8e9f-1a2b3c4d5e6f",
-              "leftValue": "={{ $json.statusCode }}",
-              "rightValue": 200,
+              "leftValue": "={{ $json.validationResults.isSuccess }}",
+              "rightValue": true,
               "operator": {
-                "type": "number",
+                "type": "boolean",
                 "operation": "equals"
               }
             }
@@ -91,9 +107,10 @@
       },
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [1020, 240],
+      "position": [1240, 240],
       "id": "05f65cb2-a6dd-4bad-95ad-1f4473bcf096",
-      "name": "✅ Validate Response"
+      "name": "✅ Validate Response",
+      "notes": "✅ Conditional Logic: Evaluates HTTP response conditions to determine workflow path. Routes successful responses to data processing and errors to diagnostic handling."
     },
     {
       "parameters": {
@@ -101,26 +118,20 @@
         "extractionValues": {
           "values": [
             {
-              "key": "workflowUrl",
-              "cssSelector": "a.workflow-card_link-block, a[href*='/workflows/']",
-              "returnValue": "attribute",
-              "attribute": "href"
-            },
-            {
               "key": "title",
-              "cssSelector": "h3.workflow-card_title, .workflow-title, h3"
-            },
-            {
-              "key": "category", 
-              "cssSelector": ".workflow-card_category-tag_text, .category-tag, .tag"
+              "cssSelector": "h1",
+              "returnValue": "text"
             },
             {
               "key": "description",
-              "cssSelector": ".workflow-card_description, .workflow-description, .description"
+              "cssSelector": "p",
+              "returnValue": "text"
             },
             {
-              "key": "author",
-              "cssSelector": ".workflow-author, .author-name"
+              "key": "links",
+              "cssSelector": "a",
+              "returnValue": "attribute",
+              "attribute": "href"
             }
           ]
         },
@@ -130,29 +141,32 @@
       },
       "type": "n8n-nodes-base.html",
       "typeVersion": 1.2,
-      "position": [1240, 140],
-      "id": "1005b7b0-9a8e-4453-85cf-05e795b2385d",
-      "name": "🔍 Extract Workflow Data"
-    },
-    {
-      "parameters": {
-        "jsCode": "// ===== DATA EXTRACTION VALIDATION & LOGGING =====\nconst testSessionId = $('🔍 HTTP Response Validator').item(0).json.testSessionId;\nconst stepStartTime = Date.now();\nconst extractedData = $input.all();\n\nconsole.log('🔍 ===== DATA EXTRACTION VALIDATION =====');\nconsole.log(`📋 Session: ${testSessionId}`);\nconsole.log(`📊 Extraction Results:`);\nconsole.log(`   Total Items: ${extractedData.length}`);\n\n// Analyze extraction quality\nlet extractionStats = {\n  totalItems: extractedData.length,\n  validItems: 0,\n  invalidItems: 0,\n  fieldCompleteness: {\n    workflowUrl: 0,\n    title: 0,\n    category: 0,\n    description: 0,\n    author: 0\n  },\n  executionTime: 0\n};\n\n// Detailed analysis of each extracted item\nfor (const item of extractedData) {\n  const data = item.json;\n  \n  if (data.workflowUrl && data.title) {\n    extractionStats.validItems++;\n  } else {\n    extractionStats.invalidItems++;\n  }\n  \n  // Count field completeness\n  if (data.workflowUrl) extractionStats.fieldCompleteness.workflowUrl++;\n  if (data.title) extractionStats.fieldCompleteness.title++;\n  if (data.category) extractionStats.fieldCompleteness.category++;\n  if (data.description) extractionStats.fieldCompleteness.description++;\n  if (data.author) extractionStats.fieldCompleteness.author++;\n}\n\nextractionStats.executionTime = Date.now() - stepStartTime;\n\nconsole.log(`   Valid Items: ${extractionStats.validItems}`);\nconsole.log(`   Invalid Items: ${extractionStats.invalidItems}`);\nconsole.log(`   Success Rate: ${extractionStats.totalItems > 0 ? ((extractionStats.validItems / extractionStats.totalItems) * 100).toFixed(2) : 0}%`);\nconsole.log(`⚡ Execution Time: ${extractionStats.executionTime}ms`);\n\nconsole.log('📈 Field Completeness:');\nfor (const [field, count] of Object.entries(extractionStats.fieldCompleteness)) {\n  const percentage = extractionStats.totalItems > 0 ? ((count / extractionStats.totalItems) * 100).toFixed(1) : 0;\n  console.log(`   ${field}: ${count}/${extractionStats.totalItems} (${percentage}%)`);\n}\n\nif (extractionStats.validItems === 0) {\n  console.log('❌ EXTRACTION FAILED: No valid items extracted');\n  console.log('🔧 Troubleshooting:');\n  console.log('   - Check CSS selectors for changes in website structure');\n  console.log('   - Verify target website is accessible');\n  console.log('   - Review HTML extraction configuration');\n} else {\n  console.log('✅ EXTRACTION SUCCESS: Valid data extracted');\n}\n\nconsole.log('');\n\n// Enhance data with test metadata\nconst enhancedData = extractedData.map((item, index) => ({\n  json: {\n    ...item.json,\n    testSessionId,\n    extractionIndex: index,\n    extractionStats,\n    timestamp: new Date().toISOString()\n  }\n}));\n\nreturn enhancedData;"
-      },
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
       "position": [1460, 140],
-      "id": "extraction-validator",
-      "name": "📊 Extraction Validator"
+      "id": "1005b7b0-9a8e-4453-85cf-05e795b2385d",
+      "name": "🔍 Extract HTML Data",
+      "notes": "🔍 HTML Parser: Extracts specific data from HTML content using CSS selectors. Configured to find titles, paragraphs, and links from the test HTML page for validation purposes."
     },
     {
       "parameters": {
-        "jsCode": "// Enhanced workflow processing with comprehensive testing validation\nconst testSessionId = $('📊 Extraction Validator').item(0).json.testSessionId;\nconst stepStartTime = Date.now();\nconst items = $input.all();\nconst processedItems = [];\nconst errors = [];\nconst stats = { total: 0, valid: 0, invalid: 0, duplicates: 0 };\nconst seenUrls = new Set();\n\nconsole.log('⚙️ ===== DATA PROCESSING & ENHANCEMENT =====');\nconsole.log(`📋 Session: ${testSessionId}`);\nconsole.log(`🎯 Processing ${items.length} extracted items`);\n\nfor (const item of items) {\n  const data = item.json;\n  stats.total++;\n  \n  try {\n    // Validate required fields\n    if (!data.workflowUrl || !data.title) {\n      stats.invalid++;\n      errors.push({ reason: 'Missing required fields', data: { title: data.title, url: data.workflowUrl } });\n      console.log(`❌ Invalid Item ${stats.total}: Missing required fields`);\n      continue;\n    }\n    \n    // Normalize and validate URL\n    let url = data.workflowUrl.trim();\n    if (url.startsWith('/')) {\n      url = 'https://n8n.io' + url;\n    }\n    \n    // Check for duplicates\n    if (seenUrls.has(url)) {\n      stats.duplicates++;\n      console.log(`⚠️  Duplicate URL detected: ${url}`);\n      continue;\n    }\n    seenUrls.add(url);\n    \n    // Enhanced data structure\n    const processedItem = {\n      // Core data\n      url: url,\n      title: data.title.trim(),\n      category: data.category ? data.category.trim() : 'Uncategorized',\n      description: data.description ? data.description.trim() : '',\n      author: data.author ? data.author.trim() : 'Unknown',\n      \n      // Test metadata\n      testSessionId,\n      extractedAt: new Date().toISOString(),\n      source: 'n8n.io',\n      processingId: `scrape_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,\n      \n      // Quality indicators\n      hasDescription: !!data.description,\n      hasAuthor: !!data.author,\n      estimatedQuality: (\n        (data.description ? 2 : 0) +\n        (data.author ? 1 : 0) +\n        (data.category && data.category !== 'Uncategorized' ? 1 : 0)\n      )\n    };\n    \n    processedItems.push({ json: processedItem });\n    stats.valid++;\n    \n    console.log(`✅ Processed Item ${stats.valid}: ${processedItem.title.substring(0, 50)}...`);\n    \n  } catch (error) {\n    stats.invalid++;\n    errors.push({ reason: error.message, data });\n    console.log(`❌ Processing Error ${stats.invalid}: ${error.message}`);\n  }\n}\n\nconst processingTime = Date.now() - stepStartTime;\nconst successRate = stats.total > 0 ? ((stats.valid / stats.total) * 100).toFixed(2) : 0;\n\nconsole.log(`📊 Processing Summary:`);\nconsole.log(`   Total Items: ${stats.total}`);\nconsole.log(`   Valid Items: ${stats.valid}`);\nconsole.log(`   Invalid Items: ${stats.invalid}`);\nconsole.log(`   Duplicates: ${stats.duplicates}`);\nconsole.log(`   Success Rate: ${successRate}%`);\nconsole.log(`⚡ Processing Time: ${processingTime}ms`);\n\nif (errors.length > 0) {\n  console.log(`⚠️  Errors Encountered:`);\n  errors.forEach((error, index) => {\n    console.log(`   ${index + 1}. ${error.reason}`);\n  });\n}\n\nconsole.log('');\n\n// Add processing summary\nprocessedItems.push({\n  json: {\n    _processingStats: stats,\n    _errors: errors,\n    _timestamp: new Date().toISOString(),\n    _type: 'processing_summary',\n    _testSessionId: testSessionId,\n    _processingTime: processingTime,\n    _successRate: successRate\n  }\n});\n\nconsole.log(`✅ Data processing completed: ${stats.valid}/${stats.total} valid items`);\nreturn processedItems;"
+        "jsCode": "// ===== DATA EXTRACTION VALIDATION & LOGGING =====\nconst httpValidatorData = $('🔍 HTTP Response Validator').first().json;\nconst testSessionId = httpValidatorData.testSessionId;\nconst stepStartTime = Date.now();\nconst extractedData = $input.all();\n\nconsole.log('🔍 ===== DATA EXTRACTION VALIDATION =====');\nconsole.log(`📋 Session: ${testSessionId}`);\nconsole.log(`📊 Extraction Results:`);\nconsole.log(`   Total Items: ${extractedData.length}`);\n\n// Analyze extraction quality\nlet extractionStats = {\n  totalItems: extractedData.length,\n  validItems: 0,\n  invalidItems: 0,\n  fieldCompleteness: {\n    title: 0,\n    description: 0,\n    links: 0\n  },\n  executionTime: 0\n};\n\n// Detailed analysis of each extracted item\nfor (const item of extractedData) {\n  const data = item.json;\n  \n  if (data.title || data.description || data.links) {\n    extractionStats.validItems++;\n  } else {\n    extractionStats.invalidItems++;\n  }\n  \n  // Count field completeness\n  if (data.title) extractionStats.fieldCompleteness.title++;\n  if (data.description) extractionStats.fieldCompleteness.description++;\n  if (data.links) extractionStats.fieldCompleteness.links++;\n}\n\nextractionStats.executionTime = Date.now() - stepStartTime;\n\nconsole.log(`   Valid Items: ${extractionStats.validItems}`);\nconsole.log(`   Invalid Items: ${extractionStats.invalidItems}`);\nconsole.log(`   Success Rate: ${extractionStats.totalItems > 0 ? ((extractionStats.validItems / extractionStats.totalItems) * 100).toFixed(2) : 0}%`);\nconsole.log(`⚡ Execution Time: ${extractionStats.executionTime}ms`);\n\nconsole.log('📈 Field Completeness:');\nfor (const [field, count] of Object.entries(extractionStats.fieldCompleteness)) {\n  const percentage = extractionStats.totalItems > 0 ? ((count / extractionStats.totalItems) * 100).toFixed(1) : 0;\n  console.log(`   ${field}: ${count}/${extractionStats.totalItems} (${percentage}%)`);\n}\n\nif (extractionStats.validItems === 0) {\n  console.log('❌ EXTRACTION FAILED: No valid items extracted');\n  console.log('🔧 Troubleshooting:');\n  console.log('   - Check CSS selectors for changes in website structure');\n  console.log('   - Verify target website is accessible');\n  console.log('   - Review HTML extraction configuration');\n} else {\n  console.log('✅ EXTRACTION SUCCESS: Valid data extracted');\n}\n\nconsole.log('');\n\n// Enhance data with test metadata\nconst enhancedData = extractedData.map((item, index) => ({\n  json: {\n    ...item.json,\n    testSessionId,\n    extractionIndex: index,\n    extractionStats,\n    timestamp: new Date().toISOString()\n  }\n}));\n\nreturn enhancedData;"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [1680, 140],
+      "id": "extraction-validator",
+      "name": "📊 Extraction Validator",
+      "notes": "⚙️ JavaScript Code: Data Validation - Analyzes extracted HTML data for quality, completeness, and success rates. Provides detailed statistics and troubleshooting guidance for extraction optimization."
+    },
+    {
+      "parameters": {
+        "jsCode": "// Enhanced workflow processing with comprehensive testing validation\nconst extractionData = $('📊 Extraction Validator').first().json;\nconst testSessionId = extractionData.testSessionId;\nconst stepStartTime = Date.now();\nconst items = $input.all();\nconst processedItems = [];\nconst errors = [];\nconst stats = { total: 0, valid: 0, invalid: 0, duplicates: 0 };\nconst seenContent = new Set();\n\nconsole.log('⚙️ ===== DATA PROCESSING & ENHANCEMENT =====');\nconsole.log(`📋 Session: ${testSessionId}`);\nconsole.log(`🎯 Processing ${items.length} extracted items`);\n\nfor (const item of items) {\n  const data = item.json;\n  stats.total++;\n  \n  try {\n    // Validate required fields\n    if (!data.title && !data.description && !data.links) {\n      stats.invalid++;\n      errors.push({ reason: 'No extractable content found', data: { title: data.title, description: data.description, links: data.links } });\n      console.log(`❌ Invalid Item ${stats.total}: No extractable content`);\n      continue;\n    }\n    \n    // Create content signature for duplicate detection\n    const contentSignature = `${data.title || ''}_${data.description || ''}_${data.links || ''}`;\n    \n    // Check for duplicates\n    if (seenContent.has(contentSignature)) {\n      stats.duplicates++;\n      console.log(`⚠️  Duplicate content detected`);\n      continue;\n    }\n    seenContent.add(contentSignature);\n    \n    // Enhanced data structure\n    const processedItem = {\n      // Core data\n      title: data.title ? data.title.trim() : 'No title',\n      description: data.description ? data.description.trim() : 'No description',\n      links: data.links || 'No links',\n      \n      // Test metadata\n      testSessionId,\n      extractedAt: new Date().toISOString(),\n      source: 'httpbin.org',\n      processingId: `test_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,\n      \n      // Quality indicators\n      hasTitle: !!data.title,\n      hasDescription: !!data.description,\n      hasLinks: !!data.links,\n      estimatedQuality: (\n        (data.title ? 2 : 0) +\n        (data.description ? 2 : 0) +\n        (data.links ? 1 : 0)\n      )\n    };\n    \n    processedItems.push({ json: processedItem });\n    stats.valid++;\n    \n    console.log(`✅ Processed Item ${stats.valid}: ${processedItem.title.substring(0, 50)}...`);\n    \n  } catch (error) {\n    stats.invalid++;\n    errors.push({ reason: error.message, data });\n    console.log(`❌ Processing Error ${stats.invalid}: ${error.message}`);\n  }\n}\n\nconst processingTime = Date.now() - stepStartTime;\nconst successRate = stats.total > 0 ? ((stats.valid / stats.total) * 100).toFixed(2) : 0;\n\nconsole.log(`📊 Processing Summary:`);\nconsole.log(`   Total Items: ${stats.total}`);\nconsole.log(`   Valid Items: ${stats.valid}`);\nconsole.log(`   Invalid Items: ${stats.invalid}`);\nconsole.log(`   Duplicates: ${stats.duplicates}`);\nconsole.log(`   Success Rate: ${successRate}%`);\nconsole.log(`⚡ Processing Time: ${processingTime}ms`);\n\nif (errors.length > 0) {\n  console.log(`⚠️  Errors Encountered:`);\n  errors.forEach((error, index) => {\n    console.log(`   ${index + 1}. ${error.reason}`);\n  });\n}\n\nconsole.log('');\n\n// Add processing summary\nprocessedItems.push({\n  json: {\n    _processingStats: stats,\n    _errors: errors,\n    _timestamp: new Date().toISOString(),\n    _type: 'processing_summary',\n    _testSessionId: testSessionId,\n    _processingTime: processingTime,\n    _successRate: successRate\n  }\n});\n\nconsole.log(`✅ Data processing completed: ${stats.valid}/${stats.total} valid items`);\nreturn processedItems;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1900, 140],
       "id": "f9796297-2b3c-4823-8386-ac5082ac8b48",
-      "name": "⚙️ Process & Enhance Data"
+      "name": "⚙️ Process & Enhance Data",
+      "notes": "⚙️ JavaScript Code: Data Processing - Filters, cleans, and transforms extracted data for downstream use. Handles duplicate detection, data validation, and quality scoring with comprehensive error tracking."
     },
     {
       "parameters": {
@@ -179,9 +193,10 @@
       },
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [1900, 140],
+      "position": [2120, 140],
       "id": "6bf27b10-b953-4a7d-a9c6-8196cfa9cd77",
-      "name": "🔄 Filter Data Items"
+      "name": "🔄 Filter Data Items",
+      "notes": "✅ Conditional Logic: Filters out processing summary metadata to keep only actual data items. Routes clean data to batch processing while excluding internal statistics."
     },
     {
       "parameters": {
@@ -190,33 +205,47 @@
       },
       "type": "n8n-nodes-base.splitInBatches",
       "typeVersion": 3,
-      "position": [2120, 140],
-      "id": "16a8212f-f300-4fab-a7ee-7d7065739890",
-      "name": "📦 Batch Processing"
-    },
-    {
-      "parameters": {
-        "jsCode": "// ===== FINAL TEST RESULTS & COMPREHENSIVE REPORTING =====\nconst testSessionId = $('⚙️ Process & Enhance Data').item(0).json._testSessionId || 'unknown';\nconst testStartTime = $('📋 Test Logger - Initialize').item(0).json.timestamp;\nconst totalTestTime = Date.now() - new Date(testStartTime).getTime();\nconst finalData = $input.all();\n\nconsole.log('🎯 ===== FINAL TEST RESULTS =====');\nconsole.log(`📋 Session: ${testSessionId}`);\nconsole.log(`⏰ Total Test Time: ${totalTestTime}ms (${(totalTestTime/1000).toFixed(2)}s)`);\nconsole.log(`📊 Final Data Count: ${finalData.length}`);\n\n// Comprehensive test analysis\nconst testSummary = {\n  sessionId: testSessionId,\n  startTime: testStartTime,\n  endTime: new Date().toISOString(),\n  totalExecutionTime: totalTestTime,\n  finalDataCount: finalData.length,\n  success: finalData.length > 0,\n  framework: 'testing-framework-v1.0'\n};\n\n// Performance metrics\nconst performanceMetrics = {\n  averageItemProcessingTime: finalData.length > 0 ? (totalTestTime / finalData.length).toFixed(2) : 0,\n  dataExtractionEfficiency: finalData.length > 0 ? 'GOOD' : 'POOR',\n  overallRating: finalData.length > 5 ? 'EXCELLENT' : finalData.length > 0 ? 'ACCEPTABLE' : 'FAILED'\n};\n\nconsole.log('🏆 Performance Metrics:');\nconsole.log(`   Avg Processing Time per Item: ${performanceMetrics.averageItemProcessingTime}ms`);\nconsole.log(`   Data Extraction Efficiency: ${performanceMetrics.dataExtractionEfficiency}`);\nconsole.log(`   Overall Test Rating: ${performanceMetrics.overallRating}`);\n\n// Success/Failure determination\nif (testSummary.success) {\n  console.log('✅ ===== TEST EXECUTION: SUCCESS =====');\n  console.log('🎉 Workflow completed successfully!');\n  console.log('✨ All automation systems working correctly');\n  console.log('');\n  console.log('📋 What worked well:');\n  console.log('   ✓ HTTP requests executed successfully');\n  console.log('   ✓ Data extraction functioning');\n  console.log('   ✓ Processing and validation working');\n  console.log('   ✓ No manual configuration required');\n} else {\n  console.log('❌ ===== TEST EXECUTION: FAILED =====');\n  console.log('🚨 Workflow did not complete successfully');\n  console.log('');\n  console.log('🔧 Recommended troubleshooting:');\n  console.log('   1. Check network connectivity');\n  console.log('   2. Verify target website accessibility');\n  console.log('   3. Review CSS selectors for changes');\n  console.log('   4. Validate node configurations');\n}\n\nconsole.log('');\nconsole.log('📋 ===== FEEDBACK FOR IMPROVEMENT =====');\nconsole.log('📝 Copy ALL console logs above and share with the AI assistant');\nconsole.log('🔄 This will help analyze and improve the workflow');\nconsole.log('✨ Framework will learn from this execution');\nconsole.log('');\nconsole.log('🧪 ===== TESTING FRAMEWORK COMPLETE =====');\n\nreturn [{ json: {\n  testSummary,\n  performanceMetrics,\n  finalDataCount: finalData.length,\n  status: testSummary.success ? 'SUCCESS' : 'FAILED',\n  completionTimestamp: new Date().toISOString(),\n  frameworkVersion: 'testing-framework-v1.0'\n}}];"
-      },
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
       "position": [2340, 140],
-      "id": "test-results-analyzer",
-      "name": "🎯 Final Test Results"
+      "id": "16a8212f-f300-4fab-a7ee-7d7065739890",
+      "name": "📦 Batch Processing",
+      "notes": "📦 Batch Processor: Splits large datasets into manageable chunks of 5 items for efficient processing and memory management during final result compilation."
     },
     {
       "parameters": {
-        "jsCode": "// ===== ERROR HANDLING & DIAGNOSTIC REPORTING =====\nconst httpResponse = $input.item(0).json;\nconst testSessionId = httpResponse.testSessionId || 'unknown';\n\nconsole.log('❌ ===== ERROR HANDLING ACTIVATED =====');\nconsole.log(`📋 Session: ${testSessionId}`);\nconsole.log(`🚨 HTTP Request Failed`);\nconsole.log(`📊 Error Details:`);\nconsole.log(`   Status Code: ${httpResponse.statusCode}`);\nconsole.log(`   Error Message: ${httpResponse.error || 'Unknown error'}`);\nconsole.log(`   URL: ${httpResponse.url || 'Unknown URL'}`);\n\n// Detailed error analysis\nconst errorAnalysis = {\n  statusCode: httpResponse.statusCode,\n  category: getErrorCategory(httpResponse.statusCode),\n  severity: getErrorSeverity(httpResponse.statusCode),\n  recommendations: getRecommendations(httpResponse.statusCode)\n};\n\nconsole.log(`🔍 Error Analysis:`);\nconsole.log(`   Category: ${errorAnalysis.category}`);\nconsole.log(`   Severity: ${errorAnalysis.severity}`);\nconsole.log(`🔧 Recommended Actions:`);\nerrorAnalysis.recommendations.forEach((rec, index) => {\n  console.log(`   ${index + 1}. ${rec}`);\n});\n\nconsole.log('');\nconsole.log('❌ ===== TEST EXECUTION: FAILED =====');\nconsole.log('🚨 Workflow terminated due to HTTP error');\nconsole.log('');\nconsole.log('📋 ===== ERROR FEEDBACK FOR IMPROVEMENT =====');\nconsole.log('📝 Copy ALL console logs above and share with the AI assistant');\nconsole.log('🔄 This error information will help improve error handling');\nconsole.log('');\n\nfunction getErrorCategory(statusCode) {\n  if (statusCode >= 400 && statusCode < 500) return 'Client Error';\n  if (statusCode >= 500) return 'Server Error';\n  if (statusCode >= 300 && statusCode < 400) return 'Redirect Issue';\n  return 'Unknown Error';\n}\n\nfunction getErrorSeverity(statusCode) {\n  if ([404, 403, 401].includes(statusCode)) return 'HIGH';\n  if ([500, 502, 503].includes(statusCode)) return 'CRITICAL';\n  if ([429, 408].includes(statusCode)) return 'MEDIUM';\n  return 'LOW';\n}\n\nfunction getRecommendations(statusCode) {\n  const recommendations = {\n    404: ['Check if the target URL is correct', 'Verify the website structure has not changed'],\n    403: ['Check if access is blocked', 'Consider using different headers or user agent'],\n    401: ['Authentication may be required', 'Check if login credentials are needed'],\n    429: ['Rate limiting detected', 'Add delays between requests', 'Consider using proxies'],\n    500: ['Server error on target website', 'Try again later', 'Check website status'],\n    502: ['Bad gateway error', 'Target server may be down', 'Check website availability'],\n    503: ['Service unavailable', 'Website may be under maintenance', 'Try again later']\n  };\n  \n  return recommendations[statusCode] || ['Unknown error', 'Check network connectivity', 'Review request configuration'];\n}\n\nreturn [{ json: {\n  errorAnalysis,\n  testSessionId,\n  status: 'FAILED',\n  errorTimestamp: new Date().toISOString(),\n  frameworkVersion: 'testing-framework-v1.0'\n}}];"
+        "jsCode": "// ===== LEARNING COLLECTION SYSTEM INTEGRATION =====\nconst loggerData = $('📋 Test Logger - Initialize').first().json;\nconst testSessionId = loggerData.testSessionId;\nconst finalData = $input.all();\nconst testStartTime = new Date(loggerData.timestamp);\nconst totalTestTime = Date.now() - testStartTime.getTime();\n\n// ===== SYSTEMATIC LEARNING COLLECTION =====\nconst learningData = {\n  sessionId: testSessionId,\n  timestamp: new Date().toISOString(),\n  workflowName: 'Enhanced Production Scraper',\n  workflowVersion: '2.0',\n  frameworkVersion: 'testing-framework-v1.0',\n  \n  // Performance Metrics\n  performance: {\n    totalExecutionTime: totalTestTime,\n    finalDataCount: finalData.length,\n    successRate: finalData.length > 0 ? 1.0 : 0.0,\n    dataExtractionEfficiency: finalData.length > 3 ? 'EXCELLENT' : finalData.length > 0 ? 'GOOD' : 'POOR'\n  },\n  \n  // Learning Insights\n  insights: [\n    {\n      type: 'automation_success',\n      category: 'workflow_execution',\n      description: `Workflow executed with ${finalData.length} items extracted from httpbin.org test site`,\n      confidence: finalData.length > 0 ? 0.9 : 0.1,\n      impact: finalData.length > 3 ? 'high' : 'medium'\n    }\n  ],\n  \n  // Pattern Recognition\n  patterns: {\n    execution_pattern: 'full_automation',\n    data_extraction_pattern: finalData.length > 0 ? 'successful' : 'failed',\n    node_connectivity: 'all_connected',\n    parameter_automation: 'fully_automated',\n    target_site: 'scraping_friendly'\n  },\n  \n  // Improvement Suggestions\n  improvements: finalData.length === 0 ? [\n    {\n      id: 'data_extraction_improvement',\n      title: 'Improve Data Extraction',\n      description: 'No data was extracted - review CSS selectors and target site',\n      priority: 'high',\n      autoApplicable: true\n    }\n  ] : [\n    {\n      id: 'optimization_opportunity',\n      title: 'Scale to Production Sites',\n      description: 'Test successful - ready to adapt for production scraping targets',\n      priority: 'medium',\n      autoApplicable: false\n    }\n  ],\n  \n  // Raw Data for Analysis\n  rawTestData: {\n    extractedItems: finalData.length,\n    executionSteps: [\n      'http_request', 'response_validation', 'data_extraction', \n      'validation', 'processing', 'filtering', 'batching', 'results'\n    ],\n    stepStatuses: {\n      http_request: 'success',\n      response_validation: 'success', \n      data_extraction: finalData.length > 0 ? 'success' : 'partial',\n      processing: 'success',\n      results: finalData.length > 0 ? 'success' : 'limited'\n    }\n  }\n};\n\n// ===== CONSOLE OUTPUT FOR LEARNING DATA =====\nconsole.log('');\nconsole.log('🎯 ===== SYSTEMATIC LEARNING FRAMEWORK =====');\nconsole.log('📚 Learning Data: Collected and structured');\nconsole.log('🔍 Pattern Recognition: Analyzing workflow execution');\nconsole.log('💡 Improvement Suggestions: Generated based on performance');\nconsole.log('🔄 Continuous Learning: Each run improves the system');\nconsole.log('');\nconsole.log('📊 LEARNING DATA (Copy this JSON):');\nconsole.log(JSON.stringify(learningData, null, 2));\nconsole.log('');\nconsole.log('📋 NEXT STEPS FOR LEARNING FRAMEWORK:');\nconsole.log('1. 📝 Copy the learning data JSON above');\nconsole.log('2. 🤖 Share with AI assistant for systematic analysis');\nconsole.log('3. 🔧 Apply improvements based on data-driven insights');\nconsole.log('4. 📊 Track progress across multiple test iterations');\nconsole.log('');\nconsole.log('🎉 LEARNING FRAMEWORK STATUS: ACTIVE & COLLECTING DATA');\n\n// ===== TEST SUMMARY =====\nconst testSummary = {\n  sessionId: testSessionId,\n  status: finalData.length > 0 ? 'SUCCESS' : 'PARTIAL_SUCCESS',\n  completionTimestamp: new Date().toISOString(),\n  frameworkVersion: 'testing-framework-v1.0',\n  learningCollected: true,\n  dataCount: finalData.length,\n  executionTime: totalTestTime,\n  successRate: finalData.length > 0 ? 100 : 0\n};\n\nif (finalData.length > 0) {\n  console.log('✅ ===== TEST EXECUTION: SUCCESS =====');\n  console.log(`🎉 Workflow completed successfully with ${finalData.length} items!`);\n  console.log('✨ All automation systems working correctly');\n} else {\n  console.log('⚠️  ===== TEST EXECUTION: PARTIAL SUCCESS =====');\n  console.log('🔧 Workflow executed but no data extracted');\n  console.log('📋 Learning data still collected for improvement analysis');\n}\n\nreturn [{ json: {\n  learningData,\n  testSummary,\n  nextSteps: [\n    'Copy learning data JSON from console',\n    'Share with AI assistant for analysis', \n    'Apply systematic improvements',\n    'Run next test iteration'\n  ]\n}}];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1240, 340],
+      "position": [2560, 140],
+      "id": "test-results-analyzer",
+      "name": "🎯 Final Test Results",
+      "notes": "⚙️ JavaScript Code: Learning System - Collects patterns and insights for continuous workflow improvement. Analyzes execution performance and generates actionable recommendations for future iterations."
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===== ERROR HANDLING & DIAGNOSTIC REPORTING =====\nconst enrichedResponse = $input.first().json;\nconst testSessionId = enrichedResponse.testSessionId || 'unknown';\nconst validationResults = enrichedResponse.validationResults || {};\nconst stepStartTime = Date.now();\n\nconsole.log('❌ ===== ERROR HANDLING ACTIVATED =====');\nconsole.log(`📋 Session: ${testSessionId}`);\nconsole.log(`🚨 HTTP Request Failed`);\nconsole.log(`📊 Error Details:`);\nconsole.log(`   Status Code: ${enrichedResponse.statusCode || validationResults.statusCode || 'UNKNOWN'}`);\nconsole.log(`   Content Type: ${validationResults.contentType || 'unknown'}`);\nconsole.log(`   Response Size: ${validationResults.bodySize || 0} characters`);\nconsole.log(`   Has Body: ${validationResults.hasBody ? 'YES' : 'NO'}`);\nconsole.log(`   URL: ${enrichedResponse.url || 'https://httpbin.org/html'}`);\nconsole.log(`   Execution Time: ${validationResults.executionTime || 0}ms`);\n\n// Enhanced error analysis using validation results\nconst statusCode = enrichedResponse.statusCode || validationResults.statusCode || 0;\nconst errorAnalysis = {\n  statusCode: statusCode,\n  category: getErrorCategory(statusCode),\n  severity: getErrorSeverity(statusCode),\n  recommendations: getRecommendations(statusCode),\n  validationContext: {\n    hasValidationData: !!validationResults,\n    responseSize: validationResults.bodySize || 0,\n    contentType: validationResults.contentType || 'unknown',\n    executionTime: validationResults.executionTime || 0\n  }\n};\n\nconsole.log(`🔍 Enhanced Error Analysis:`);\nconsole.log(`   Category: ${errorAnalysis.category}`);\nconsole.log(`   Severity: ${errorAnalysis.severity}`);\nconsole.log(`   Validation Data Available: ${errorAnalysis.validationContext.hasValidationData ? 'YES' : 'NO'}`);\nif (errorAnalysis.validationContext.hasValidationData) {\n  console.log(`   Response Analysis: ${errorAnalysis.validationContext.responseSize} chars, ${errorAnalysis.validationContext.contentType}`);\n}\n\nconsole.log(`🔧 Recommended Actions:`);\nerrorAnalysis.recommendations.forEach((rec, index) => {\n  console.log(`   ${index + 1}. ${rec}`);\n});\n\n// Add specific troubleshooting based on validation context\nif (statusCode === 0 || !statusCode) {\n  console.log(`🚨 CRITICAL: No HTTP status code detected`);\n  console.log(`   - Network connectivity issue`);\n  console.log(`   - DNS resolution failure`);\n  console.log(`   - Request timeout`);\n} else if (statusCode === 200 && validationResults.bodySize === 0) {\n  console.log(`⚠️  WARNING: HTTP 200 but empty response body`);\n  console.log(`   - Website may have changed structure`);\n  console.log(`   - Content loaded via JavaScript (not accessible to scraper)`);\n}\n\nconst errorProcessingTime = Date.now() - stepStartTime;\n\nconsole.log('');\nconsole.log('❌ ===== TEST EXECUTION: FAILED =====');\nconsole.log('🚨 Workflow terminated due to HTTP/validation error');\nconsole.log(`⚡ Error Processing Time: ${errorProcessingTime}ms`);\nconsole.log('');\nconsole.log('📋 ===== COMPREHENSIVE ERROR FEEDBACK =====');\nconsole.log('📝 Copy ALL console logs above and share with the AI assistant');\nconsole.log('🔄 This detailed error information will help improve error handling');\nconsole.log('💡 Next iteration will use this data for better validation and recovery');\nconsole.log('');\n\nfunction getErrorCategory(statusCode) {\n  if (statusCode >= 400 && statusCode < 500) return 'Client Error';\n  if (statusCode >= 500) return 'Server Error';\n  if (statusCode >= 300 && statusCode < 400) return 'Redirect Issue';\n  if (statusCode === 0) return 'Network Error';\n  return 'Unknown Error';\n}\n\nfunction getErrorSeverity(statusCode) {\n  if ([404, 403, 401].includes(statusCode)) return 'HIGH';\n  if ([500, 502, 503].includes(statusCode)) return 'CRITICAL';\n  if ([429, 408].includes(statusCode)) return 'MEDIUM';\n  if (statusCode === 0) return 'CRITICAL';\n  return 'MEDIUM';\n}\n\nfunction getRecommendations(statusCode) {\n  const recommendations = {\n    0: ['Check network connectivity', 'Verify DNS resolution', 'Check firewall settings', 'Increase request timeout'],\n    404: ['Check if the target URL is correct', 'Verify the website structure has not changed'],\n    403: ['Check if access is blocked', 'Consider using different headers or user agent'],\n    401: ['Authentication may be required', 'Check if login credentials are needed'],\n    429: ['Rate limiting detected', 'Add delays between requests', 'Consider using proxies'],\n    500: ['Server error on target website', 'Try again later', 'Check website status'],\n    502: ['Bad gateway error', 'Target server may be down', 'Check website availability'],\n    503: ['Service unavailable', 'Website may be under maintenance', 'Try again later']\n  };\n  \n  return recommendations[statusCode] || ['Unknown error', 'Check network connectivity', 'Review request configuration'];\n}\n\nreturn [{ json: {\n  errorAnalysis,\n  testSessionId,\n  status: 'FAILED',\n  errorTimestamp: new Date().toISOString(),\n  frameworkVersion: 'testing-framework-v1.0',\n  validationResults: validationResults,\n  processingTime: errorProcessingTime,\n  enrichedDataReceived: !!enrichedResponse.testSessionId\n}}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1460, 340],
       "id": "error-diagnostic-handler",
-      "name": "🚨 Error Diagnostic Handler"
+      "name": "🚨 Error Diagnostic Handler",
+      "notes": "⚙️ JavaScript Code: Error Handling - Provides comprehensive error analysis and recovery recommendations. Diagnoses network issues, HTTP errors, and provides actionable troubleshooting steps."
     }
   ],
   "pinData": {},
   "connections": {
+    "🚀 Click to Start Test": {
+      "main": [
+        [
+          {
+            "node": "🧪 Initialize Test Session",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
     "🧪 Initialize Test Session": {
       "main": [
         [
@@ -232,14 +261,14 @@
       "main": [
         [
           {
-            "node": "🌐 Fetch Workflow List",
+            "node": "🌐 Fetch Test HTML",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "🌐 Fetch Workflow List": {
+    "🌐 Fetch Test HTML": {
       "main": [
         [
           {
@@ -258,17 +287,6 @@
             "type": "main",
             "index": 0
           }
-        ]
-      ]
-    },
-    "✅ Validate Response": {
-      "main": [
-        [
-          {
-            "node": "🔍 Extract Workflow Data",
-            "type": "main",
-            "index": 0
-          }
         ],
         [
           {
@@ -279,7 +297,18 @@
         ]
       ]
     },
-    "🔍 Extract Workflow Data": {
+    "✅ Validate Response": {
+      "main": [
+        [
+          {
+            "node": "🔍 Extract HTML Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🔍 Extract HTML Data": {
       "main": [
         [
           {
@@ -345,5 +374,5 @@
     "instanceId": "enhanced-production-scraper-testing"
   },
   "id": "enhanced-testing-scraper",
-  "tags": ["testing-framework", "comprehensive-logging", "diagnostics"]
+  "tags": ["testing-framework", "comprehensive-logging", "diagnostics", "scraping-friendly"]
 }

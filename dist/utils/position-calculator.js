@@ -2,10 +2,12 @@
  * Utility class for calculating visual positions of nodes in n8n workflows
  */
 export class PositionCalculator {
-    HORIZONTAL_SPACING = 300;
-    VERTICAL_SPACING = 150;
-    START_X = 100;
-    START_Y = 300;
+    constructor() {
+        this.HORIZONTAL_SPACING = 300;
+        this.VERTICAL_SPACING = 150;
+        this.START_X = 100;
+        this.START_Y = 300;
+    }
     /**
      * Calculate positions for all nodes based on their connections
      */
@@ -378,4 +380,3 @@ export class PositionCalculator {
         return layers;
     }
 }
-//# sourceMappingURL=position-calculator.js.map

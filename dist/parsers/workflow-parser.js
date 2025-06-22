@@ -4,7 +4,6 @@ import { WorkflowValidator } from '../validators/workflow-validator.js';
  * Main workflow parser for n8n JSON files
  */
 export class WorkflowParser {
-    validator;
     constructor() {
         this.validator = new WorkflowValidator();
     }
@@ -259,4 +258,3 @@ export class WorkflowParser {
         return summary.join('\n');
     }
 }
-//# sourceMappingURL=workflow-parser.js.map

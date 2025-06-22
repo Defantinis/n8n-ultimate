@@ -162,4 +162,28 @@ export interface ParsedWorkflow {
     estimatedComplexity: number;
   };
   validation: ValidationResult;
+}
+
+// Workflow generation types
+export interface WorkflowPlan {
+  nodes: NodeSpecification[];
+  flow: FlowConnection[];
+  estimatedComplexity: number;
+  rationale: string;
+}
+
+export interface NodeSpecification {
+  id: string;
+  name: string;
+  type: string;
+  parameters: Record<string, any>;
+  description: string;
+  position?: [number, number];
+}
+
+export interface FlowConnection {
+  from: string;
+  to: string;
+  type: string;
+  condition?: string;
 } 

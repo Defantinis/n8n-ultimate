@@ -1,5 +1,5 @@
 import { randomUUID } from 'crypto';
-import { N8nWorkflow, N8nNode, N8nConnections, ParsedWorkflow, WorkflowPlan, FlowConnection } from '../types/n8n-workflow.js';
+import { N8nWorkflow, N8nNode, N8nConnections, ParsedWorkflow, WorkflowPlan, FlowConnection, NodeSpecification } from '../types/n8n-workflow.js';
 import { WorkflowParser } from '../parsers/workflow-parser.js';
 import { NodeFactory } from './node-factory.js';
 import { ConnectionBuilder } from './connection-builder.js';
@@ -20,26 +20,7 @@ interface WorkflowContext {
   hasNotifications: boolean;
 }
 
-/**
- * Simple workflow plan interface
- */
-interface WorkflowPlan {
-  nodes: Array<{
-    type: string;
-    description: string;
-    parameters?: Record<string, any>;
-  }>;
-  estimatedComplexity?: number;
-}
-
-/**
- * Simple flow connection interface
- */
-interface FlowConnection {
-  from: string;
-  to: string;
-  type?: string;
-}
+// WorkflowPlan and FlowConnection are now imported from types
 
 /**
  * Main workflow generator that creates n8n workflows from user requirements
@@ -1153,6 +1134,73 @@ return processedItems.map(item => ({ json: item }));`;
 
     return { ...workflow, nodes: newNodes, connections: newConnections };
   }
+
+  private addNodeNotes(node: any): void {
+    // Add descriptive notes to nodes based on their type and purpose
+    const nodeNotes = this.generateNodeNotes(node);
+    if (nodeNotes) {
+      node.notes = nodeNotes;
+    }
+  }
+
+  private generateNodeNotes(node: any): string {
+    const nodeType = node.type;
+    const nodeName = node.name || 'Unnamed Node';
+    
+    // Generate contextual notes based on node type
+    switch (nodeType) {
+      case 'n8n-nodes-base.manualTrigger':
+        return `🚀 Manual Trigger: Click this button to start the workflow execution manually. This is the entry point for the entire automation process.`;
+      
+      case 'n8n-nodes-base.httpRequest':
+        const url = node.parameters?.url || 'target URL';
+        return `🌐 HTTP Request: Fetches data from ${url}. Configured with proper headers, timeout settings, and error handling for reliable data retrieval.`;
+      
+      case 'n8n-nodes-base.html':
+        return `🔍 HTML Parser: Extracts specific data from HTML content using CSS selectors. Configured to find titles, links, descriptions, and other structured data from web pages.`;
+      
+      case 'n8n-nodes-base.code':
+        const codeType = this.detectCodePurpose(node.parameters?.jsCode || '');
+        return `⚙️ JavaScript Code: ${codeType}. Processes data, validates results, and applies business logic transformations with comprehensive error handling.`;
+      
+      case 'n8n-nodes-base.if':
+        return `✅ Conditional Logic: Evaluates data conditions to determine workflow path. Routes successful responses to data processing and errors to diagnostic handling.`;
+      
+      case 'n8n-nodes-base.set':
+        return `📝 Data Setter: Configures data fields and adds metadata like timestamps, session IDs, and processing status for downstream nodes.`;
+      
+      case 'n8n-nodes-base.splitInBatches':
+        const batchSize = node.parameters?.batchSize || 5;
+        return `📦 Batch Processor: Splits large datasets into manageable chunks of ${batchSize} items for efficient processing and memory management.`;
+      
+      case 'n8n-nodes-base.writeBinaryFile':
+        return `💾 File Writer: Saves processed data to files with automatic naming, proper encoding, and organized directory structure.`;
+      
+      case 'n8n-nodes-base.emailSend':
+        return `📧 Email Sender: Sends notification emails with results, summaries, or error reports. Configured with proper formatting and attachments.`;
+      
+      default:
+        return `🔧 ${nodeName}: Performs specialized processing as part of the automated workflow. Check parameters for specific configuration details.`;
+    }
+  }
+
+  private detectCodePurpose(jsCode: string): string {
+    if (jsCode.includes('console.log') && jsCode.includes('TEST')) {
+      return 'Testing & Diagnostics - Provides detailed logging and validation for debugging workflow execution';
+    } else if (jsCode.includes('validation') || jsCode.includes('validate')) {
+      return 'Data Validation - Checks data quality, completeness, and format compliance';
+    } else if (jsCode.includes('extract') || jsCode.includes('parse')) {
+      return 'Data Extraction - Parses and structures raw data into usable formats';
+    } else if (jsCode.includes('filter') || jsCode.includes('clean')) {
+      return 'Data Processing - Filters, cleans, and transforms data for downstream use';
+    } else if (jsCode.includes('learning') || jsCode.includes('insight')) {
+      return 'Learning System - Collects patterns and insights for continuous workflow improvement';
+    } else if (jsCode.includes('error') || jsCode.includes('diagnostic')) {
+      return 'Error Handling - Provides comprehensive error analysis and recovery recommendations';
+    } else {
+      return 'Data Processing - Transforms and manipulates data according to workflow requirements';
+    }
+  }
 }
 
 // Type definitions for generation
@@ -1181,28 +1229,7 @@ export interface WorkflowRequirements {
   priority?: 'low' | 'medium' | 'high';
 }
 
-export interface WorkflowPlan {
-  nodes: NodeSpecification[];
-  flow: FlowConnection[];
-  estimatedComplexity: number;
-  rationale: string;
-}
-
-export interface NodeSpecification {
-  id: string;
-  name: string;
-  type: string;
-  parameters: Record<string, any>;
-  description: string;
-  position?: [number, number];
-}
-
-export interface FlowConnection {
-  from: string;
-  to: string;
-  type: string;
-  condition?: string;
-}
+// Interfaces moved to src/types/n8n-workflow.ts
 
 export interface GeneratedWorkflow {
   workflow: N8nWorkflow;

@@ -2,8 +2,8 @@
   "models": {
     "main": {
       "provider": "ollama",
-      "modelId": "light-r1-14b-ds:latest",
-      "maxTokens": 120000,
+      "modelId": "hf.co/unsloth/DeepSeek-R1-0528-Qwen3-8B-GGUF:Q4_K_XL",
+      "maxTokens": 64000,
       "temperature": 0.2
     },
     "research": {

@@ -1,0 +1,69 @@
+{
+  "name": "Simple HTTP Test - Network Debugging",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [140, 240],
+      "id": "manual-trigger-test",
+      "name": "🚀 Manual Trigger"
+    },
+    {
+      "parameters": {
+        "url": "https://httpbin.org/get",
+        "options": {
+          "timeout": 10000,
+          "redirect": {
+            "redirect": {}
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [360, 240],
+      "id": "simple-http-test",
+      "name": "🌐 Test HTTP Request"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Simple HTTP Test - Debug Output\nconst response = $input.first().json;\n\nconsole.log('=== HTTP TEST RESULTS ===');\nconsole.log('Status Code:', response.status || 'UNKNOWN');\nconsole.log('Headers Present:', !!response.headers);\nconsole.log('Body Present:', !!response.args);\nconsole.log('Response Size:', JSON.stringify(response).length, 'characters');\n\nif (response.status === 200 || response.args) {\n  console.log('✅ SUCCESS: HTTP request worked!');\n  console.log('Your IP:', response.origin);\n  console.log('User Agent:', response.headers ? response.headers['User-Agent'] : 'Not available');\n} else {\n  console.log('❌ FAILED: HTTP request did not work');\n  console.log('Response:', JSON.stringify(response, null, 2));\n}\n\nreturn [{ json: {\n  testResult: response.status === 200 || !!response.args ? 'SUCCESS' : 'FAILED',\n  statusCode: response.status,\n  timestamp: new Date().toISOString(),\n  debugInfo: response\n}}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [580, 240],
+      "id": "debug-output",
+      "name": "🔍 Debug Output"
+    }
+  ],
+  "connections": {
+    "🚀 Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "🌐 Test HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🌐 Test HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "🔍 Debug Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "id": "simple-http-test",
+  "tags": ["debugging", "network-test"]
+} 

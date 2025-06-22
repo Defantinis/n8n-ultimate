@@ -1,0 +1,47 @@
+{
+  "name": "Fallback Test Workflow",
+  "nodes": [
+    {
+      "parameters": {},
+      "name": "Start Test",
+      "type": "n8n-nodes-base.start",
+      "typeVersion": 1,
+      "position": [
+        100,
+        100
+      ],
+      "id": "start-node"
+    },
+    {
+      "parameters": {
+        "url": "https://httpbin.org/json",
+        "method": "GET"
+      },
+      "name": "HTTP Test",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        100,
+        100
+      ],
+      "id": "http-node"
+    }
+  ],
+  "connections": {
+    "Start Test": {
+      "main": [
+        [
+          {
+            "node": "HTTP Test",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {},
+  "id": "workflow-1750590513883",
+  "meta": {}
+}

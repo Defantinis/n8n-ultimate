@@ -50,4 +50,3 @@ async function generateFromPrompt() {
     }
 }
 generateFromPrompt();
-//# sourceMappingURL=interactive-generator.js.map

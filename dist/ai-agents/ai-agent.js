@@ -1,12 +1,12 @@
+import { ollamaCacheManager } from '../performance/ollama-cache-manager.js';
 /**
  * AI Agent that uses Ollama to analyze requirements and plan workflows
  */
 export class AIAgent {
-    ollamaBaseUrl;
-    modelName;
-    constructor(ollamaBaseUrl = 'http://localhost:11434', modelName = 'llama3.2') {
+    constructor(ollamaBaseUrl = 'http://localhost:11434', modelName = 'deepseek-r1:14b', enableCaching = true) {
         this.ollamaBaseUrl = ollamaBaseUrl;
         this.modelName = modelName;
+        this.enableCaching = enableCaching;
     }
     /**
      * Analyze user requirements to understand what kind of workflow is needed
@@ -49,6 +49,56 @@ export class AIAgent {
             console.warn('AI simplification failed, using fallback suggestions:', error);
             return this.createFallbackSimplifications(complexNodes);
         }
+    }
+    /**
+     * Get cache statistics for performance monitoring
+     */
+    getCacheStats() {
+        if (!this.enableCaching) {
+            return null;
+        }
+        return ollamaCacheManager.getCacheStats();
+    }
+    /**
+     * Clear cache (useful for testing or manual cache management)
+     */
+    clearCache() {
+        if (this.enableCaching) {
+            ollamaCacheManager.clearCache();
+        }
+    }
+    /**
+     * Preload common workflow generation prompts into cache
+     */
+    async preloadCommonPrompts() {
+        if (!this.enableCaching) {
+            return;
+        }
+        const commonPrompts = [
+            {
+                prompt: "You are an expert n8n workflow designer. Create a simple HTTP request workflow that fetches data from an API and processes it.",
+                response: JSON.stringify({
+                    nodes: [
+                        { id: "start", name: "Start", type: "n8n-nodes-base.start" },
+                        { id: "http", name: "HTTP Request", type: "n8n-nodes-base.httpRequest" }
+                    ],
+                    flow: [{ from: "start", to: "http", type: "main" }]
+                }),
+                model: this.modelName
+            },
+            {
+                prompt: "You are an expert n8n workflow designer. Create a data processing workflow that transforms JSON data.",
+                response: JSON.stringify({
+                    nodes: [
+                        { id: "start", name: "Start", type: "n8n-nodes-base.start" },
+                        { id: "set", name: "Process Data", type: "n8n-nodes-base.set" }
+                    ],
+                    flow: [{ from: "start", to: "set", type: "main" }]
+                }),
+                model: this.modelName
+            }
+        ];
+        await ollamaCacheManager.preloadCommonPrompts(commonPrompts);
     }
     /**
      * Build the analysis prompt for Ollama
@@ -152,40 +202,75 @@ Please suggest simplifications as JSON:
 Focus on maintaining functionality while reducing complexity.`;
     }
     /**
-     * Call Ollama API
+     * Call Ollama API with caching support
      */
     async callOllama(prompt) {
-        const response = await fetch(`${this.ollamaBaseUrl}/api/generate`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                model: this.modelName,
-                prompt,
-                stream: false,
-                options: {
-                    temperature: 0.3, // Lower temperature for more consistent responses
-                    top_p: 0.9,
-                    num_predict: 2000
-                }
-            }),
-        });
-        if (!response.ok) {
-            throw new Error(`Ollama API error: ${response.status} ${response.statusText}`);
+        const temperature = 0.3;
+        const topP = 0.9;
+        const numPredict = 2000;
+        // Check cache first if caching is enabled
+        if (this.enableCaching) {
+            const cachedResponse = await ollamaCacheManager.getCachedResponse(prompt, this.modelName, temperature, topP, numPredict);
+            if (cachedResponse) {
+                return cachedResponse;
+            }
         }
-        const data = await response.json();
-        return data.response;
+        // Make API call with performance tracking
+        const startTime = Date.now();
+        try {
+            const response = await fetch(`${this.ollamaBaseUrl}/api/generate`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    model: this.modelName,
+                    prompt,
+                    stream: false,
+                    options: {
+                        temperature,
+                        top_p: topP,
+                        num_predict: numPredict
+                    }
+                }),
+            });
+            if (!response.ok) {
+                throw new Error(`Ollama API error: ${response.status} ${response.statusText}`);
+            }
+            const data = await response.json();
+            const responseTime = Date.now() - startTime;
+            // Record performance metrics
+            if (this.enableCaching) {
+                ollamaCacheManager.recordResponseTime(responseTime);
+                // Cache the response
+                await ollamaCacheManager.setCachedResponse(prompt, data.response, this.modelName, temperature, topP, numPredict);
+            }
+            return data.response;
+        }
+        catch (error) {
+            const responseTime = Date.now() - startTime;
+            // Still record response time for failed requests
+            if (this.enableCaching) {
+                ollamaCacheManager.recordResponseTime(responseTime);
+            }
+            throw error;
+        }
     }
     /**
      * Parse the analysis response from Ollama
      */
     parseAnalysisResponse(response, requirements) {
         try {
-            // Try to extract JSON from the response
-            const jsonMatch = response.match(/\{[\s\S]*\}/);
-            if (jsonMatch) {
-                const parsed = JSON.parse(jsonMatch[0]);
+            // Handle DeepSeek's thinking process by looking for JSON after </think>
+            let cleanResponse = response;
+            if (response.includes('</think>')) {
+                cleanResponse = response.split('</think>')[1];
+            }
+            // Try to extract the last valid JSON object from the response
+            const jsonMatches = cleanResponse.match(/\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}/g);
+            if (jsonMatches && jsonMatches.length > 0) {
+                const lastJsonMatch = jsonMatches[jsonMatches.length - 1];
+                const parsed = JSON.parse(lastJsonMatch);
                 return {
                     workflowType: parsed.workflowType || 'linear',
                     estimatedComplexity: Math.min(10, Math.max(1, parsed.estimatedComplexity || 5)),
@@ -207,9 +292,16 @@ Focus on maintaining functionality while reducing complexity.`;
      */
     parsePlanningResponse(response, analysis) {
         try {
-            const jsonMatch = response.match(/\{[\s\S]*\}/);
-            if (jsonMatch) {
-                const parsed = JSON.parse(jsonMatch[0]);
+            // Handle DeepSeek's thinking process by looking for JSON after </think>
+            let cleanResponse = response;
+            if (response.includes('</think>')) {
+                cleanResponse = response.split('</think>')[1];
+            }
+            // Try to extract the last valid JSON object from the response
+            const jsonMatches = cleanResponse.match(/\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}/g);
+            if (jsonMatches && jsonMatches.length > 0) {
+                const lastJsonMatch = jsonMatches[jsonMatches.length - 1];
+                const parsed = JSON.parse(lastJsonMatch);
                 if (parsed.nodes && parsed.flow) {
                     return {
                         nodes: parsed.nodes.map((node) => ({
@@ -404,4 +496,3 @@ Focus on maintaining functionality while reducing complexity.`;
         return nodeTypes;
     }
 }
-//# sourceMappingURL=ai-agent.js.map

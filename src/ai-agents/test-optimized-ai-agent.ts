@@ -1,5 +1,6 @@
 import { OptimizedAIAgent, OptimizedAIConfig, ConcurrentAnalysisRequest, ConcurrentPlanningRequest } from './optimized-ai-agent.js';
-import { WorkflowRequirements, WorkflowPlan } from '../generators/workflow-generator.js';
+import { WorkflowRequirements } from '../generators/workflow-generator.js';
+import { WorkflowPlan } from '../types/n8n-workflow.js';
 import { RequirementAnalysis } from './ai-agent.js';
 
 /**

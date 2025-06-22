@@ -1,5 +1,4 @@
-import { N8nNode, N8nConnections } from '../types/n8n-workflow.js';
-import { FlowConnection } from './workflow-generator.js';
+import { N8nNode, N8nConnections, FlowConnection } from '../types/n8n-workflow.js';
 
 /**
  * Builder class for creating connections between n8n nodes

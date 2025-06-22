@@ -1,4 +1,5 @@
-import { WorkflowRequirements, WorkflowPlan, NodeSpecification, FlowConnection, SimplificationSuggestion } from '../generators/workflow-generator.js';
+import { WorkflowRequirements, SimplificationSuggestion } from '../generators/workflow-generator.js';
+import { WorkflowPlan, NodeSpecification, FlowConnection } from '../types/n8n-workflow.js';
 import { N8nWorkflow, N8nNode } from '../types/n8n-workflow.js';
 import { ollamaCacheManager } from '../performance/ollama-cache-manager.js';
 
@@ -12,7 +13,7 @@ export class AIAgent {
 
   constructor(
     ollamaBaseUrl = 'http://localhost:11434', 
-    modelName = 'llama3.2',
+    modelName = 'deepseek-r1:14b',
     enableCaching = true
   ) {
     this.ollamaBaseUrl = ollamaBaseUrl;
@@ -319,10 +320,17 @@ Focus on maintaining functionality while reducing complexity.`;
    */
   private parseAnalysisResponse(response: string, requirements: WorkflowRequirements): RequirementAnalysis {
     try {
-      // Try to extract JSON from the response
-      const jsonMatch = response.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        const parsed = JSON.parse(jsonMatch[0]);
+      // Handle DeepSeek's thinking process by looking for JSON after </think>
+      let cleanResponse = response;
+      if (response.includes('</think>')) {
+        cleanResponse = response.split('</think>')[1];
+      }
+      
+      // Try to extract the last valid JSON object from the response
+      const jsonMatches = cleanResponse.match(/\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}/g);
+      if (jsonMatches && jsonMatches.length > 0) {
+        const lastJsonMatch = jsonMatches[jsonMatches.length - 1];
+        const parsed = JSON.parse(lastJsonMatch);
         return {
           workflowType: parsed.workflowType || 'linear',
           estimatedComplexity: Math.min(10, Math.max(1, parsed.estimatedComplexity || 5)),
@@ -345,9 +353,17 @@ Focus on maintaining functionality while reducing complexity.`;
    */
   private parsePlanningResponse(response: string, analysis: RequirementAnalysis): WorkflowPlan {
     try {
-      const jsonMatch = response.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        const parsed = JSON.parse(jsonMatch[0]);
+      // Handle DeepSeek's thinking process by looking for JSON after </think>
+      let cleanResponse = response;
+      if (response.includes('</think>')) {
+        cleanResponse = response.split('</think>')[1];
+      }
+      
+      // Try to extract the last valid JSON object from the response
+      const jsonMatches = cleanResponse.match(/\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}/g);
+      if (jsonMatches && jsonMatches.length > 0) {
+        const lastJsonMatch = jsonMatches[jsonMatches.length - 1];
+        const parsed = JSON.parse(lastJsonMatch);
         
         if (parsed.nodes && parsed.flow) {
           return {

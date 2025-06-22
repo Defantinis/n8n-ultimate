@@ -1,6 +1,6 @@
 import { randomUUID } from 'crypto';
 import { N8nNode } from '../types/n8n-workflow.js';
-import { NodeSpecification } from './workflow-generator.js';
+import { NodeSpecification } from '../types/n8n-workflow.js';
 
 /**
  * Factory class for creating n8n nodes based on specifications

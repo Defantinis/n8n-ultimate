@@ -17,7 +17,7 @@
                 "MISTRAL_API_KEY": "MISTRAL_API_KEY_HERE",
                 "AZURE_OPENAI_API_KEY": "AZURE_OPENAI_API_KEY_HERE",
                 "OLLAMA_API_KEY": "OLLAMA_API_KEY_HERE",
-                "OLLAMA_BASE_URL": "http://localhost:11434"
+                "OLLAMA_BASE_URL": "http://localhost:11434/api"
             }
         }
     }

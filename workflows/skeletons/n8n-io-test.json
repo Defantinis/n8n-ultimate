@@ -1,0 +1,73 @@
+{
+  "name": "n8n.io URL Test - Network Debugging",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [140, 240],
+      "id": "manual-trigger-test",
+      "name": "🚀 Manual Trigger"
+    },
+    {
+      "parameters": {
+        "url": "https://n8n.io/workflows/",
+        "options": {
+          "timeout": 30000,
+          "redirect": {
+            "redirect": {}
+          },
+          "headers": {
+            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [360, 240],
+      "id": "n8n-io-test",
+      "name": "🌐 Test n8n.io"
+    },
+    {
+      "parameters": {
+        "jsCode": "// n8n.io Test - Detailed Debug Output\nconst response = $input.first().json;\n\nconsole.log('=== N8N.IO TEST RESULTS ===');\nconsole.log('Status Code:', response.statusCode || response.status || 'UNKNOWN');\nconsole.log('Headers Present:', !!response.headers);\nconsole.log('Body Present:', !!response.body);\nconsole.log('Body Size:', response.body ? response.body.length : 0, 'characters');\nconsole.log('Response Keys:', Object.keys(response));\n\nif (response.statusCode === 200 || response.status === 200) {\n  console.log('✅ SUCCESS: n8n.io request worked!');\n  console.log('Content Type:', response.headers ? response.headers['content-type'] : 'Not available');\n  console.log('Server:', response.headers ? response.headers.server : 'Not available');\n  \n  if (response.body && response.body.includes('workflow')) {\n    console.log('✅ Body contains workflow content - scraping should work!');\n  } else {\n    console.log('⚠️ Body does not contain expected workflow content');\n  }\n} else {\n  console.log('❌ FAILED: n8n.io request failed');\n  console.log('Error Code:', response.statusCode || response.status || 0);\n  console.log('Full Response:', JSON.stringify(response, null, 2));\n}\n\nreturn [{ json: {\n  testResult: (response.statusCode === 200 || response.status === 200) ? 'SUCCESS' : 'FAILED',\n  statusCode: response.statusCode || response.status,\n  bodySize: response.body ? response.body.length : 0,\n  timestamp: new Date().toISOString(),\n  debugInfo: {\n    keys: Object.keys(response),\n    hasBody: !!response.body,\n    hasHeaders: !!response.headers\n  }\n}}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [580, 240],
+      "id": "debug-output",
+      "name": "🔍 Debug Output"
+    }
+  ],
+  "connections": {
+    "🚀 Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "🌐 Test n8n.io",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🌐 Test n8n.io": {
+      "main": [
+        [
+          {
+            "node": "🔍 Debug Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "id": "n8n-io-test",
+  "tags": ["debugging", "n8n-test"]
+} 

@@ -1,9 +1,9 @@
 {
 	"meta": {
-		"generatedAt": "2025-06-21T09:03:43.509Z",
-		"tasksAnalyzed": 2,
-		"totalTasks": 11,
-		"analysisCount": 7,
+		"generatedAt": "2025-06-22T10:25:52.232Z",
+		"tasksAnalyzed": 1,
+		"totalTasks": 13,
+		"analysisCount": 9,
 		"thresholdScore": 5,
 		"projectName": "Taskmaster",
 		"usedResearch": false
@@ -64,6 +64,22 @@
 			"recommendedSubtasks": 1,
 			"expansionPrompt": "Conduct thorough testing and refinement of the system to ensure it meets the project's requirements.",
 			"reasoning": "This task requires conducting unit tests, integration tests, and UI tests to ensure the system works as expected."
+		},
+		{
+			"taskId": 1,
+			"taskTitle": "Create Examples and Tutorials Section",
+			"complexityScore": 7,
+			"recommendedSubtasks": 4,
+			"expansionPrompt": "Start by creating a clear structure for the section to ensure accessibility. Develop detailed step-by-step guides for common use cases, workflow templates in specific directories, and integration patterns that are compatible with existing systems.",
+			"reasoning": "The task requires significant effort due to the need for comprehensive documentation and proper integration with other components. It is considered medium complexity as it involves multiple areas of work but isn't overly complex."
+		},
+		{
+			"taskId": 13,
+			"taskTitle": "Create Examples and Tutorials Section",
+			"complexityScore": 5,
+			"recommendedSubtasks": 3,
+			"expansionPrompt": "Break down this task with a focus on create examples and tutorials section.",
+			"reasoning": "Automatically added due to missing analysis in AI response."
 		}
 	]
 }
