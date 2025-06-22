@@ -1,0 +1,215 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# AI Agent Collaboration Patterns
+
+This rule establishes systematic patterns for AI agents working on this project, ensuring consistent tool usage, documentation standards, and collaboration frameworks based on patterns documented in [AI_AGENT_COLLABORATION_GUIDE.md](mdc:docs/AI_AGENT_COLLABORATION_GUIDE.md).
+
+## **Project Context Priority**
+
+**When starting any new session, immediately understand:**
+- **Project Type**: n8n Ultimate - AI-powered workflow generation system
+- **Current Phase**: Phase 2 - User-friendly production experience  
+- **Core Technologies**: Node.js, TypeScript, n8n API, Task Master AI
+- **Local AI Models**: PHI4 (main), DeepSeek R1 (research), Claude Sonnet (fallback)
+- **Zero-Cost Operation**: Task management using local Ollama models
+
+## **Task Master Integration Patterns**
+
+### **✅ DO: Systematic Task Master Usage**
+
+**Session Initialization:**
+```bash
+# 1. Check current tasks and status
+mcp_task-master-ai_get_tasks
+
+# 2. Identify next task to work on
+mcp_task-master-ai_next_task
+
+# 3. Get detailed task context
+mcp_task-master-ai_get_task --id=<task-id>
+```
+
+**During Implementation:**
+```bash
+# Start working on a task
+mcp_task-master-ai_set_task_status --id=<id> --status=in-progress
+
+# Log detailed progress with timestamps
+mcp_task-master-ai_update_subtask --id=<subtask-id> --prompt="
+Implementation Progress Update:
+- Explored codebase structure in src/dashboard/
+- Identified files needing modification: dashboard/index.ts, user-guide/
+- Planned approach: Progressive disclosure pattern
+- Challenges discovered: Need to integrate with existing template system
+"
+
+# Mark completion with verification
+mcp_task-master-ai_set_task_status --id=<id> --status=done
+```
+
+### **❌ DON'T: Task Master Anti-Patterns**
+```bash
+# Don't work without task context
+# Don't skip progress logging
+# Don't mark tasks done without verification
+# Don't create tasks without proper description/dependencies
+```
+
+## **5-Phase Systematic Methodology**
+
+Apply this to ALL development work:
+
+### **Phase 1: IDENTIFY**
+- **Task Context**: Use `get_task` to understand requirements fully.
+- **Codebase Analysis**: Run `WorkflowValidator` and `DataFlowValidator` from `src/validation` to automatically identify structural and data flow issues. Examine existing patterns and architecture.
+- **Dependency Check**: Verify all prerequisite tasks are complete.
+- **Scope Definition**: Clear boundaries of what needs to be accomplished.
+
+### **Phase 2: ISOLATE**
+- **Component Focus**: Identify specific files/functions to modify. Use `NodeAnalyzer` from `src/utils` to understand node dependencies.
+- **Pattern Recognition**: Look for existing similar implementations to reuse.
+- **Risk Assessment**: Identify potential breaking changes.
+- **Test Strategy**: Plan verification approach using the `RealWorldTestingFramework` from `src/testing`.
+
+### **Phase 3: FIX/IMPLEMENT**
+- **Progressive Implementation**: Start with smallest working change.
+- **Pattern Consistency**: Use `WorkflowGenerator` from `src/generators` to ensure new nodes and connections follow established project patterns.
+- **Error Handling**: Implement `ErrorClassifier` and `AdaptiveErrorCollector` from `src/error-handling` instead of generic try-catch blocks.
+- **Documentation**: Update relevant documentation inline.
+
+### **Phase 4: VERIFY**
+- **Unit Level**: Test individual functions/components.
+- **Integration Level**: Test interactions between components.
+- **System Level**: Use the `RealWorldTestingFramework` from `src/testing` to simulate real-world scenarios and test complete feature functionality.
+- **Edge Cases**: Use the `ErrorTestingFramework` from `src/error-handling` to test error scenarios and boundary conditions.
+
+### **Phase 5: DOCUMENT**
+- **Task Master Updates**: Log all findings and decisions.
+- **Rule Updates**: Update rules based on new patterns.
+- **Execution Log**: Update project execution log.
+- **Knowledge Preservation**: Ensure future agents can understand decisions.
+- **Patterns**: Follows established project patterns.
+- **Performance**: No performance regressions. Validated with `PerformanceMonitor` from `src/performance`.
+- **Task Master**: Progress fully logged.
+
+## **Code Development Patterns**
+
+### **✅ DO: Systematic Code Implementation**
+
+**File Organization:**
+```typescript
+// Follow established project structure
+src/
+  dashboard/           // UI components with progressive disclosure
+  ai-agents/          // AI integration patterns
+  error-handling/     // Comprehensive error management
+  performance/        // Optimization and caching
+  testing/           // Real-world testing framework
+```
+
+**Error Handling Pattern:**
+```typescript
+// Always include comprehensive error handling
+try {
+  const result = await performOperation(data);
+  
+  // Log success patterns for learning
+  logger.info('Operation successful', { 
+    operation: 'workflow-generation',
+    data: sanitizedData,
+    result: result.id 
+  });
+  
+  return result;
+} catch (error) {
+  // Log error patterns for debugging
+  logger.error('Operation failed', {
+    operation: 'workflow-generation',
+    error: error.message,
+    data: sanitizedData,
+    timestamp: new Date().toISOString()
+  });
+  
+  throw new WorkflowGenerationError(
+    `Failed to generate workflow: ${error.message}`,
+    { originalError: error, data }
+  );
+}
+```
+
+## **Quality Standards**
+
+### **Code Quality Gates**
+Before marking any task complete:
+- [ ] **Functionality**: Feature works as specified
+- [ ] **Error Handling**: Comprehensive error management
+- [ ] **Testing**: Unit and integration tests pass
+- [ ] **Documentation**: Inline and external docs updated
+- [ ] **Patterns**: Follows established project patterns
+- [ ] **Performance**: No performance regressions
+- [ ] **Task Master**: Progress fully logged
+
+### **Documentation Quality Gates**
+- [ ] **Clarity**: Clear, actionable instructions
+- [ ] **Completeness**: All aspects covered
+- [ ] **Examples**: Real code examples included
+- [ ] **Context**: Links to related documentation
+- [ ] **Maintenance**: Easy to update and extend
+
+## **AI Agent Handoff Patterns**
+
+### **Session Startup Checklist**
+```bash
+# 1. Load project context
+mcp_task-master-ai_get_tasks --withSubtasks=true
+
+# 2. Check execution log
+# Read: Execution Log for AI helper.txt
+
+# 3. Review recent progress
+mcp_task-master-ai_get_task --id=<last-active-task>
+
+# 4. Understand current phase
+# Check: docs/PROJECT_OVERVIEW.md, docs/Roadmap.md
+```
+
+## **Tool Integration Priority Order**
+
+1.  **Task Master (Primary)**: For systematic task and progress management.
+2.  **Internal Validation & Analysis Suite (`src/validators`, `src/utils`)**: Before any manual analysis, use `WorkflowValidator`, `DataFlowValidator`, and `NodeAnalyzer` to programmatically identify issues.
+3.  **AI-Powered Generation & Enhancement (`src/generators`, `src/ai-agents`)**: Use `WorkflowGenerator` and `OptimizedAIAgent` for creating and enhancing workflows, not just manual creation.
+4.  **Automated Error Handling (`src/error-handling`)**: Integrate `ErrorClassifier` and `ErrorRecoveryManager` into workflows instead of writing ad-hoc error logic.
+5.  **Performance Tooling (`src/performance`)**: Use `PerformanceMonitor` and `IntelligentCacheManager` for optimization tasks.
+6.  **Real-World Testing Framework (`src/testing`)**: Use the `RealWorldTestingFramework` for all verification steps.
+7.  **AI Research (Secondary)**: Use for external knowledge gathering when internal tools lack context.
+8.  **Manual Code Analysis (Fallback)**: Use `codebase_search` and manual file reading only when automated tools are insufficient.
+
+## **Emergency Patterns**
+
+### **When Things Break**
+1. **Immediate**: Run `WorkflowValidator`, `DataFlowValidator`, and `ErrorClassifier` from `src/` to diagnose the issue. Use n8n debugging methodology from rules as a fallback.
+2. **Document**: Log in Task Master with full context from the tool outputs.
+3. **Fix**: Apply systematic 5-phase approach, using `WorkflowGenerator` to implement fixes.
+4. **Verify**: Use the `RealWorldTestingFramework` to test the fix thoroughly.
+5. **Learn**: Update rules with new patterns discovered.
+
+### **When Context is Lost**
+1. **Task Master**: `get_tasks` to understand current state.
+2. **Execution Log**: Read recent entries for context.
+3. **Documentation**: Review relevant docs/ files.
+4. **Code Analysis**: Examine recent changes and patterns.
+5. **Systematic Approach**: Apply 5-phase methodology.
+
+## **References**
+
+- [AI_AGENT_COLLABORATION_GUIDE.md](mdc:docs/AI_AGENT_COLLABORATION_GUIDE.md) - Complete collaboration guide
+- [N8N_WORKFLOW_DEBUGGING.md](mdc:docs/N8N_WORKFLOW_DEBUGGING.md) - Debugging methodology
+- [taskmaster.mdc](mdc:.cursor/rules/taskmaster.mdc) - Complete tool reference
+- [Execution Log for AI helper.txt](mdc:Execution Log for AI helper.txt) - Project history
+
+---
+
+*This framework ensures every AI agent can immediately understand the project context, apply consistent methodologies, and maintain the high quality standards established for n8n Ultimate.*

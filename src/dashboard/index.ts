@@ -141,16 +141,23 @@ export const ACCESSIBILITY_FEATURES = {
   }
 };
 
+import { WorkflowGeneratorComponent } from './workflow-generator/index.js';
+import { TemplateGalleryComponent } from './template-gallery/index.js';
+import { SystemMonitorComponent } from './system-monitor/index.js';
+
 /**
  * Main Dashboard Class - Central orchestrator for user experience
  */
 export class N8nUltimateDashboard {
   private config: DashboardConfig;
-  private currentUser: any;
+  private rootElement: HTMLElement;
+  private currentComponent: { dispose?: () => void } | null = null;
   
-  constructor(config: DashboardConfig) {
+  constructor(config: DashboardConfig, rootElement: HTMLElement) {
     this.config = config;
+    this.rootElement = rootElement;
     this.initializeAccessibility();
+    this.showGettingStarted();
   }
   
   /**
@@ -191,6 +198,33 @@ export class N8nUltimateDashboard {
   }
   
   /**
+   * Navigate to a specific dashboard section.
+   * This is the primary method for changing views.
+   */
+  public navigateTo(sectionId: string): void {
+    if (this.currentComponent && typeof this.currentComponent.dispose === 'function') {
+      this.currentComponent.dispose();
+      this.currentComponent = null;
+    }
+
+    switch (sectionId) {
+      case 'workflow-generator':
+        this.currentComponent = new WorkflowGeneratorComponent(this.rootElement);
+        break;
+      case 'template-gallery':
+        this.currentComponent = new TemplateGalleryComponent(this.rootElement);
+        break;
+      case 'system-monitor':
+        this.currentComponent = new SystemMonitorComponent(this.rootElement);
+        break;
+      // Add cases for 'control-panel' and 'user-guide' here
+      default:
+        this.showGettingStarted();
+        break;
+    }
+  }
+
+  /**
    * Handle user interaction and route to appropriate feature
    */
   async handleUserInput(input: string, context?: any): Promise<any> {
@@ -198,49 +232,51 @@ export class N8nUltimateDashboard {
     // Route to appropriate dashboard component based on user intent
     
     if (input.toLowerCase().includes('create') || input.toLowerCase().includes('workflow')) {
-      return this.routeToWorkflowGenerator(input, context);
+      this.navigateTo('workflow-generator');
+      return;
     }
     
     if (input.toLowerCase().includes('template') || input.toLowerCase().includes('browse')) {
-      return this.routeToTemplateGallery(input, context);
+      this.navigateTo('template-gallery');
+      return;
     }
     
+    if (input.toLowerCase().includes('status') || input.toLowerCase().includes('monitor')) {
+      this.navigateTo('system-monitor');
+      return;
+    }
+
     if (input.toLowerCase().includes('help') || input.toLowerCase().includes('guide')) {
-      return this.routeToUserGuide(input, context);
+      this.navigateTo('user-guide');
+      return;
     }
     
     // Default: show help with available options
-    return this.showGettingStarted();
+    this.showGettingStarted();
   }
   
-  private async routeToWorkflowGenerator(input: string, context?: any): Promise<any> {
-    // Will be implemented in workflow-generator module
-    return { route: 'workflow-generator', input, context };
-  }
-  
-  private async routeToTemplateGallery(input: string, context?: any): Promise<any> {
-    // Will be implemented in template-gallery module
-    return { route: 'template-gallery', input, context };
-  }
-  
-  private async routeToUserGuide(input: string, context?: any): Promise<any> {
-    // Will be implemented in user-guide module
-    return { route: 'user-guide', input, context };
-  }
-  
-  private showGettingStarted(): any {
-    return {
-      type: 'getting-started',
-      message: 'Welcome to n8n Ultimate! What would you like to do?',
-      options: [
-        'Create a new workflow from description',
-        'Browse template gallery',
-        'Configure system settings',
-        'View system status',
-        'Get help and tutorials'
-      ],
-      quickActions: QUICK_ACTIONS
-    };
+  private showGettingStarted(): void {
+    if (this.currentComponent && typeof this.currentComponent.dispose === 'function') {
+      this.currentComponent.dispose();
+    }
+    this.rootElement.innerHTML = `
+      <div class="getting-started">
+        <h2>Welcome to n8n Ultimate!</h2>
+        <p>What would you like to do?</p>
+        <ul>
+          ${DASHBOARD_NAVIGATION.map(item => `<li><button data-section-id="${item.id}">${item.title}</button></li>`).join('')}
+        </ul>
+      </div>
+    `;
+
+    this.rootElement.querySelectorAll('button[data-section-id]').forEach(button => {
+      button.addEventListener('click', (e) => {
+        const sectionId = (e.target as HTMLElement).dataset.sectionId;
+        if (sectionId) {
+          this.navigateTo(sectionId);
+        }
+      });
+    });
   }
 }
 

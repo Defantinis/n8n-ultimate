@@ -6,6 +6,9 @@ import { ConnectionBuilder } from './connection-builder.js';
 import { PositionCalculator } from '../utils/position-calculator.js';
 import { AIAgent } from '../ai-agents/ai-agent.js';
 import { memoryManager } from '../performance/memory-manager.js';
+import { promises as fs } from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 /**
  * Interface for workflow context analysis
@@ -1044,18 +1047,21 @@ return processedItems.map(item => ({ json: item }));`;
     };
   }
 
-  // Placeholder methods for error fixing and workflow modification
-  // TODO: Implement when needed
-  // private async fixConnectionError(workflow: N8nWorkflow, _error: any): Promise<N8nWorkflow> {
-  //   return workflow;
-  // }
+  async listTemplates(): Promise<string[]> {
+    const __filename = fileURLToPath(import.meta.url);
+    const __dirname = path.dirname(__filename);
+    const templatesPath = path.resolve(__dirname, `../templates`);
 
-  // private async fixStructureError(workflow: N8nWorkflow, _error: any): Promise<N8nWorkflow> {
-  //   return workflow;
-  // }
+    try {
+      const files = await fs.readdir(templatesPath);
+      return files.filter(file => file.endsWith('.json')).map(file => file.replace('.json', ''));
+    } catch (error) {
+      throw new Error(`Failed to list templates: ${error.message}`);
+    }
+  }
 
   private async splitComplexNode(workflow: N8nWorkflow, _suggestion: SimplificationSuggestion): Promise<N8nWorkflow> {
-    // Implementation for splitting complex nodes
+    // Implementation for splitting a complex node
     return workflow;
   }
 
@@ -1069,31 +1075,28 @@ return processedItems.map(item => ({ json: item }));`;
     return workflow;
   }
 
-  private async loadTemplate(_templateName: string): Promise<N8nWorkflow> {
+  private async loadTemplate(templateName: string): Promise<N8nWorkflow> {
     // Implementation for loading workflow templates
-    throw new Error('Template loading not implemented yet');
+    const __filename = fileURLToPath(import.meta.url);
+    const __dirname = path.dirname(__filename);
+    const templatePath = path.resolve(__dirname, `../templates/${templateName}.json`);
+
+    try {
+      const fileContent = await fs.readFile(templatePath, 'utf-8');
+      const template = JSON.parse(fileContent) as N8nWorkflow;
+      return template;
+    } catch (error: any) {
+      if (error.code === 'ENOENT') {
+        throw new Error(`Template "${templateName}" not found at ${templatePath}`);
+      }
+      throw new Error(`Failed to load template "${templateName}": ${error.message}`);
+    }
   }
 
   private async populateTemplate(template: N8nWorkflow, _parameters: Record<string, any>): Promise<N8nWorkflow> {
     // Placeholder for populating template with parameters
     return template;
   }
-
-  // TODO: Implement enhancement methods when needed
-  // private async addNodeToWorkflow(workflow: N8nWorkflow, enhancement: WorkflowEnhancement): Promise<N8nWorkflow> {
-  //   const { targetNodeId, newNode } = enhancement.parameters;
-  //   const node = await this.nodeFactory.createNode(newNode);
-  //   const newNodes = [...workflow.nodes, node];
-  //   return { ...workflow, nodes: newNodes };
-  // }
-
-  // private async modifyWorkflowNode(workflow: N8nWorkflow, _enhancement: WorkflowEnhancement): Promise<N8nWorkflow> {
-  //   return workflow;
-  // }
-
-  // private async addConnectionToWorkflow(workflow: N8nWorkflow, _enhancement: WorkflowEnhancement): Promise<N8nWorkflow> {
-  //   return workflow;
-  // }
 
   private async addErrorHandling(workflow: N8nWorkflow, targetNode: N8nNode): Promise<N8nWorkflow> {
     // 1. Create an 'IF' node for error checking

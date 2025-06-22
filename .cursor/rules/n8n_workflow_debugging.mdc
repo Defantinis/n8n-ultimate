@@ -1,0 +1,177 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# n8n Workflow Debugging Methodology
+
+This rule establishes the systematic 5-phase debugging approach for n8n workflows, based on real-world patterns and solutions documented in [N8N_WORKFLOW_DEBUGGING.md](mdc:docs/N8N_WORKFLOW_DEBUGGING.md).
+
+## **Core Debugging Philosophy**
+
+- **Field Name Consistency**: The #1 cause of n8n workflow failures
+- **Progressive Testing**: Individual nodes → connections → end-to-end
+- **Error Pattern Recognition**: HTTP 500 errors have predictable root causes
+- **Graceful Degradation**: Always include comprehensive error handling
+
+## **5-Phase Debugging Methodology**
+
+### **Phase 1: IDENTIFY**
+- **Automated Analysis**: Run `WorkflowValidator`, `DataFlowValidator`, and `ConnectionValidator` from `src/validation` to automatically detect common issues.
+- **Error Classification**: Use `ErrorClassifier` from `src/error-handling` to understand the root cause of any exceptions.
+- **HTTP 500 Errors**: Check trigger configuration, field mappings, HTTP parameters.
+- **Node Failures**: Verify node-specific requirements (credentials, parameters, data types).
+- **Data Flow Issues**: Trace data transformation between connected nodes.
+- **Field Consistency**: Look for mismatched field names across the workflow.
+
+### **Phase 2: ISOLATE**
+- **Node Analysis**: Use `NodeAnalyzer` from `src/utils` to identify the specific node and its dependencies that are causing the failure.
+- **Targeted Testing**: Test the isolated component with the `RealWorldTestingFramework` using sample data that replicates the error.
+```javascript
+// ✅ DO: Test individual components with automated tools
+// Use NodeAnalyzer to find the problematic node
+// Use RealWorldTestingFramework to test it with specific data
+
+// ❌ DON'T: Test entire workflow at once
+// Skip individual node validation
+// Assume data flow without verification
+```
+
+### **Phase 3: FIX**
+**Critical Fix Patterns:**
+- **Automated Generation**: Use `WorkflowGenerator` from `src/generators` to rebuild faulty nodes or connections according to best practices.
+- **Schedule Triggers**: Always include complete cron configuration.
+- **HTTP Requests**: Specify method, headers, and parameter structure.
+- **Field References**: Use consistent naming (customer_id vs mixpanel_customer_id).
+- **Data Transformations**: Handle undefined/null values gracefully, preferably with logic from our `ai-agents`.
+
+### **Phase 4: VERIFY**
+- **Automated Validation**: Re-run all validators from `src/validation` to confirm the fix has not introduced new issues.
+- **Individual Node Testing**: Each node executes successfully in isolation.
+- **Connection Testing**: Data flows correctly between connected nodes.
+- **End-to-End Testing**: Use the `RealWorldTestingFramework` to execute the complete workflow with the original problematic data.
+- **Error Scenarios**: Use the `ErrorTestingFramework` to test for graceful handling of edge cases and failures.
+
+### **Phase 5: DOCUMENT**
+- **Update Task Master**: Log findings using `update_subtask` with timestamps, including the output from our analysis tools.
+- **Pattern Documentation**: Record successful patterns and fixes in `docs/LEARNINGS.md` for future reference.
+- **Error Solutions**: Document specific fixes for common error patterns.
+
+## **Field Name Consistency Patterns**
+
+### **✅ DO: Consistent Field Naming**
+```json
+{
+  "customer_id": "12345",           // Use throughout workflow
+  "mixpanel_customer_id": "12345",  // Explicit mapping when needed
+  "contact_id": "67890"             // Clear, consistent naming
+}
+```
+
+### **❌ DON'T: Inconsistent Field References**
+```json
+{
+  "customerId": "12345",      // CamelCase
+  "customer_id": "12345",     // Snake_case  
+  "CustomerID": "12345"       // PascalCase
+}
+```
+
+## **HTTP Node Configuration Patterns**
+
+### **✅ DO: Complete HTTP Configuration**
+```json
+{
+  "method": "GET",
+  "url": "https://api.example.com/endpoint",
+  "headers": {
+    "Authorization": "Bearer {{$credentials.token}}",
+    "Content-Type": "application/json"
+  },
+  "qs": {
+    "param1": "{{$json.field1}}",
+    "param2": "{{$json.field2}}"
+  }
+}
+```
+
+### **❌ DON'T: Incomplete HTTP Configuration**
+```json
+{
+  "url": "https://api.example.com/endpoint"
+  // Missing method, headers, parameters
+}
+```
+
+## **Error Handling Patterns**
+
+### **✅ DO: Comprehensive Error Handling**
+```javascript
+// In Function nodes
+try {
+  const result = items.map(item => {
+    const data = item.json;
+    
+    // Validate required fields
+    if (!data.customer_id) {
+      return { 
+        error: 'Missing customer_id',
+        original_data: data 
+      };
+    }
+    
+    // Process data
+    return { 
+      processed: true,
+      customer_id: data.customer_id,
+      result: processData(data)
+    };
+  });
+  
+  return result;
+} catch (error) {
+  return [{ 
+    error: error.message,
+    timestamp: new Date().toISOString()
+  }];
+}
+```
+
+## **Task Master Integration**
+
+When debugging n8n workflows, use Task Master systematically:
+
+```bash
+# Log debugging progress
+mcp_task-master-ai_update_subtask --id=<subtask-id> --prompt="
+Phase 1 IDENTIFY: Found HTTP 500 error in HubSpot node
+- **WorkflowValidator Output**: [Paste output here]
+- **ErrorClassifier Output**: [Paste output here]
+- Root cause: Missing customer_id field mapping
+- Affected nodes: HubSpot Contact Fetch, Mixpanel Update
+- Error pattern: Field name inconsistency
+"
+
+# Mark phases complete
+mcp_task-master-ai_set_task_status --id=<subtask-id> --status=done
+```
+
+## **Quality Gates**
+
+Before marking any n8n workflow task complete:
+- [ ] All validators from `src/validation` pass
+- [ ] All HTTP 500 errors resolved
+- [ ] Field name consistency verified
+- [ ] Error handling implemented using `src/error-handling` tools
+- [ ] End-to-end testing passed with `RealWorldTestingFramework`
+- [ ] Documentation updated
+- [ ] Task Master progress logged with tool outputs
+
+## **References**
+
+- [N8N_WORKFLOW_DEBUGGING.md](mdc:docs/N8N_WORKFLOW_DEBUGGING.md) - Complete debugging guide
+- [AI_AGENT_COLLABORATION_GUIDE.md](mdc:docs/AI_AGENT_COLLABORATION_GUIDE.md) - Tool usage patterns
+
+---
+
+*This systematic approach ensures consistent, high-quality n8n workflow development and maintenance.*

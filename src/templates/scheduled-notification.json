@@ -1,0 +1,76 @@
+{
+  "name": "Scheduled Notification",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": "0 10 * * 1-5"
+      },
+      "name": "Cron",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [100, 300],
+      "id": "cron-node"
+    },
+    {
+      "parameters": {
+        "jsCode": "return {\\n  json: {\\n    subject: 'Your daily report',\\n    message: 'This is your scheduled daily report.'\\n  }\\n};"
+      },
+      "name": "Compose Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [400, 300],
+      "id": "compose-message-node"
+    },
+    {
+      "parameters": {
+        "to": "{{EMAIL_RECIPIENT}}",
+        "subject": "={{ $json.subject }}",
+        "text": "={{ $json.message }}"
+      },
+      "name": "Send Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 1,
+      "position": [700, 300],
+      "id": "send-email-node",
+      "credentials": {
+        "smtp": {
+          "id": "{{SMTP_CREDENTIAL_ID}}",
+          "name": "SMTP account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Cron": {
+      "main": [
+        [
+          {
+            "node": "Compose Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compose Message": {
+      "main": [
+        [
+          {
+            "node": "Send Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "createdAt": "2024-01-01T00:00:00.000Z",
+  "updatedAt": "2024-01-01T00:00:00.000Z",
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": ["notification", "schedule"],
+  "triggerCount": 1,
+  "versionId": "1"
+} 

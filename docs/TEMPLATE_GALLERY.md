@@ -49,7 +49,57 @@ Welcome to the **n8n Ultimate Template Gallery**! This comprehensive collection 
 
 ---
 
-### 2. Ultra-Simple HTTP Test
+### 2. Data Scraping and Storage
+**File**: `src/templates/data-scraping-storage.json`
+**Complexity**: ⭐ Beginner
+**Use Case**: Scrape data from an API and save it to a file.
+
+#### What it does:
+- Fetches data from any REST API
+- Processes the response data
+- Saves the output to a JSON file named `output.json`
+
+#### Configuration:
+```json
+{
+  "API_URL": "https://api.example.com/data"
+}
+```
+
+#### Setup Instructions:
+1. Import the template into n8n.
+2. Replace `{{API_URL}}` with your target API endpoint.
+3. Execute the workflow. The output will be saved in your n8n data directory.
+
+---
+
+### 3. Scheduled Notification
+**File**: `src/templates/scheduled-notification.json`
+**Complexity**: ⭐ Beginner
+**Use Case**: Send a scheduled notification via email.
+
+#### What it does:
+- Runs on a schedule (default: 10am on weekdays).
+- Composes a message.
+- Sends the message via email.
+
+#### Configuration:
+```json
+{
+  "EMAIL_RECIPIENT": "user@example.com",
+  "SMTP_CREDENTIAL_ID": "YOUR_SMTP_CREDENTIAL_ID"
+}
+```
+
+#### Setup Instructions:
+1. Import the template into n8n.
+2. Update the Cron node to your desired schedule.
+3. In the "Send Email" node, replace `{{EMAIL_RECIPIENT}}` with the recipient's email address.
+4. Set the credentials for your SMTP provider.
+
+---
+
+### 4. Ultra-Simple HTTP Test
 **Complexity**: ⭐ Beginner  
 **Use Case**: Basic HTTP connectivity testing
 
@@ -94,7 +144,7 @@ Welcome to the **n8n Ultimate Template Gallery**! This comprehensive collection 
 
 ## 🔗 API Integration Templates
 
-### 3. REST API Data Pipeline
+### 5. REST API Data Pipeline
 **Complexity**: ⭐⭐ Intermediate  
 **Use Case**: Complete API integration with error handling
 
@@ -150,7 +200,7 @@ Welcome to the **n8n Ultimate Template Gallery**! This comprehensive collection 
 
 ## 📊 Data Processing Templates
 
-### 4. CSV Data Processor
+### 6. CSV Data Processor
 **Complexity**: ⭐⭐ Intermediate  
 **Use Case**: Process and transform CSV data
 
@@ -194,7 +244,7 @@ Welcome to the **n8n Ultimate Template Gallery**! This comprehensive collection 
 
 ## 📈 Monitoring & Alerting Templates
 
-### 5. Website Uptime Monitor
+### 7. Website Uptime Monitor
 **Complexity**: ⭐⭐ Intermediate  
 **Use Case**: Monitor website availability and performance
 
@@ -239,7 +289,7 @@ Welcome to the **n8n Ultimate Template Gallery**! This comprehensive collection 
 
 ## 🛒 E-commerce Templates
 
-### 6. Order Processing Pipeline
+### 8. Order Processing Pipeline
 **Complexity**: ⭐⭐⭐ Advanced  
 **Use Case**: Complete e-commerce order processing
 
@@ -295,7 +345,7 @@ Welcome to the **n8n Ultimate Template Gallery**! This comprehensive collection 
 
 ## 💬 Customer Support Templates
 
-### 7. Support Ticket Automation
+### 9. Support Ticket Automation
 **Complexity**: ⭐⭐⭐ Advanced  
 **Use Case**: Intelligent customer support automation
 
@@ -439,18 +489,18 @@ if (!items[0].json.email || !items[0].json.email.includes('@')) {
 ## 🔍 Template Search & Discovery
 
 ### Search by Use Case
-- **Data Integration**: Templates 3, 4
-- **Monitoring**: Template 5
-- **API Testing**: Templates 1, 2
+- **Data Integration**: Templates 5, 6
+- **Monitoring**: Template 7
+- **API Testing**: Templates 1, 4
 
 ### Search by Complexity
-- **Beginner** (⭐): Templates 1, 2
-- **Intermediate** (⭐⭐): Templates 3, 4, 5
+- **Beginner** (⭐): Templates 1, 4
+- **Intermediate** (⭐⭐): Templates 5, 6, 7
 
 ### Search by Technology
-- **REST APIs**: Templates 1, 2, 3
-- **File Processing**: Template 4
-- **Scheduled Tasks**: Template 5
+- **REST APIs**: Templates 1, 4, 5
+- **File Processing**: Template 6
+- **Scheduled Tasks**: Template 7
 
 ---
 
