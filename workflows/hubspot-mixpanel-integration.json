@@ -92,62 +92,14 @@
       },
       {
         "parameters": {
-          "jsCode": "// More robustly transform HubSpot contacts for Mixpanel processing\nconst contacts = [];\n\nfor (const item of $input.all()) {\n  const json = item.json || {};\n  const properties = json.properties || {};\n\n  // Extract email value from HubSpot's nested structure with extra safety\n  const emailValue = properties.email?.value || properties.email || null;\n  const firstnameValue = properties.firstname?.value || properties.firstname || '';\n  const lastnameValue = properties.lastname?.value || properties.lastname || '';\n  const lastModifiedValue = properties.lastmodifieddate?.value || properties.lastmodifieddate;\n  \n  const contact = {\n    hubspot_id: json.id || json['canonical-vid'] || json.vid,\n    customer_id: emailValue, // Use email as customer_id for Mixpanel integration\n    email: emailValue,\n    name: `${firstnameValue} ${lastnameValue}`.trim(),\n    current_page_views: properties.mixpanel_page_views?.value ?? 0,\n    last_modified: lastModifiedValue\n  };\n  \n  // Validate required fields - only need valid email\n  if (contact.email && contact.email.includes('@')) {\n    contacts.push(contact);\n    // console.log(`✅ Added contact: ${contact.name} (${contact.email})`);\n  } else {\n    console.warn(`❌ Skipped contact: Missing or invalid email for HubSpot ID ${contact.hubspot_id}`);\n  }\n}\n\nconsole.log(`Processing ${contacts.length} valid contacts out of ${$input.all().length} total`);\nreturn contacts.map(contact => ({ json: contact }));"
-        },
-        "id": "5d4931af-aa82-47ee-8e8a-28062a955cb3",
-        "name": "Transform: Contact Data",
-        "type": "n8n-nodes-base.code",
-        "typeVersion": 1,
-        "position": [
-          -140,
-          -40
-        ]
-      },
-      {
-        "parameters": {
-          "mode": "runOnceForAllItems",
-          "jsCode": "const items = $input.all();\nconst firstItem = items[0];\nlet auth_status = 'failed';\nlet auth_error = 'Unknown error';\n\ntry {\n  const credentials = await this.getCredentials('Mixpanel_Credentials');\n  const apiKey = credentials.user;\n  const encodedAuth = Buffer.from(`${apiKey}:`).toString('base64');\n\n  await $http.request({\n    method: 'GET',\n    url: 'https://mixpanel.com/api/2.0/engage',\n    headers: { 'Authorization': 'Basic ' + encodedAuth },\n    params: { distinct_id: firstItem.json.customer_id, limit: 1 },\n  });\n\n  auth_status = 'success';\n  auth_error = '';\n  console.log('✅ Mixpanel authentication successful');\n\n} catch (error) {\n  auth_error = error.message;\n  console.error('❌ Mixpanel authentication failed:', auth_error);\n}\n\n// Add the auth status to every item and return the array\nreturn items.map(item => {\n  item.json.mixpanel_auth_status = auth_status;\n  if (auth_error) {\n    item.json.auth_error = auth_error;\n  }\n  item.json.auth_tested_at = new Date().toISOString();\n  return item;\n});"
-        },
-        "id": "35b564b7-84b0-4730-99c6-56c773a3a63b",
-        "name": "Mixpanel: Test Auth",
-        "type": "n8n-nodes-base.code",
-        "typeVersion": 1,
-        "position": [
-          1060,
-          -220
-        ]
-      },
-      {
-        "parameters": {
-          "conditions": {
-            "string": [
-              {
-                "value1": "={{ $json.mixpanel_auth_status }}",
-                "operation": "equal",
-                "value2": "success"
-              }
-            ]
-          }
-        },
-        "id": "auth-validation-check",
-        "name": "Validate Auth Success",
-        "type": "n8n-nodes-base.if",
-        "typeVersion": 1,
-        "position": [
-          280,
-          -40
-        ]
-      },
-      {
-        "parameters": {
           "batchSize": "={{$node[\"Workflow Config\"].json.batchSize}}",
           "options": {
             "runOnce": true
           }
         },
-        "id": "067b1059-7d56-41d0-8713-e97780e0f032",
-        "name": "Split In Batches",
-        "type": "n8n-nodes-base.splitInBatches",
+        "id": "Filter valid contacts",
+        "name": "Filter valid contacts",
+        "type": "n8n-nodes-base.filter",
         "typeVersion": 1,
         "position": [
           460,
@@ -156,115 +108,92 @@
       },
       {
         "parameters": {
-          "jsCode": "const batch = $input.all();\nconst customerIds = batch.map(item => item.json.customer_id);\n\n// Return the IDs for the API call and the original batch data for merging later\nreturn [{\n  json: {\n    customer_ids: customerIds,\n    original_batch: batch.map(item => item.json)\n  }\n}];"
+          "jsCode": "const items = $input.all();\nconst customerIds = items.map(item => item.json.customer_id).filter(id => id);\nreturn [{ json: { customer_ids: customerIds } }];"
         },
-        "id": "aggregate-contact-ids",
+        "id": "Aggregate Contact IDs",
         "name": "Aggregate Contact IDs",
         "type": "n8n-nodes-base.code",
         "typeVersion": 1,
         "position": [
-          700,
-          -220
+          660,
+          -40
         ]
       },
       {
         "parameters": {
-          "url": "https://mixpanel.com/api/2.0/export",
-          "authentication": "genericCredentialType",
-          "genericAuthType": "httpBasicAuth",
+          "method": "GET",
+          "url": "https://mixpanel.com/api/2.0/events",
+          "authentication": "httpBasicAuth",
           "sendQuery": true,
-          "queryParameters": {
-            "parameters": [
-              {
-                "name": "from_date",
-                "value": "={{ $now.minus({days: $node[\"Workflow Config\"].json.daysToSync}).toFormat('yyyy-MM-dd') }}"
-              },
-              {
-                "name": "to_date",
-                "value": "={{ $now.toFormat('yyyy-MM-dd') }}"
-              },
-              {
-                "name": "event",
-                "value": "[\"{{$node[\"Workflow Config\"].json.mixpanelEventName}}\"]"
-              },
-              {
-                "name": "where",
-                "value": "={{ 'properties[\"$distinct_id\"] in ' + JSON.stringify($json.customer_ids) }}"
-              }
-            ]
-          },
-          "options": {
-            "splitIntoItems": false
-          }
+          "queryParameters": [
+            {
+              "name": "distinct_id",
+              "value": "={{ $json.customer_ids }}"
+            },
+            {
+              "name": "from_date",
+              "value": "={{ $node[\"Workflow Config\"].json.fromDate }}"
+            },
+            {
+              "name": "to_date",
+              "value": "={{ $node[\"Workflow Config\"].json.toDate }}"
+            },
+            {
+              "name": "event",
+              "value": "page view"
+            }
+          ],
+          "options": {}
         },
-        "id": "a2e8a229-2ead-40cc-bd75-6b8a4dcf25f2",
+        "id": "Mixpanel: Fetch Page Views",
         "name": "Mixpanel: Fetch Page Views",
         "type": "n8n-nodes-base.httpRequest",
-        "typeVersion": 3,
+        "typeVersion": 4.1,
         "position": [
-          920,
-          -220
+          860,
+          -40
         ],
         "credentials": {
           "httpBasicAuth": {
-            "id": "={{$credentials.Mixpanel_Credentials}}",
+            "id": "Mixpanel_Credentials",
             "name": "Mixpanel Credentials"
           }
         }
       },
       {
         "parameters": {
-          "jsCode": "// Process Mixpanel events for the entire batch and calculate page view metrics\nconst inputData = $input.first().json;\nconst originalBatch = inputData.original_batch;\nconst mixpanelResponse = inputData.body;\nconst eventName = $node[\"Workflow Config\"].json.mixpanelEventName || 'Page View';\n\nlet allEvents = [];\ntry {\n  if (typeof mixpanelResponse === 'string' && mixpanelResponse.trim()) {\n    allEvents = mixpanelResponse.split('\\n').filter(line => line.trim()).map(line => JSON.parse(line));\n  } else if (Array.isArray(mixpanelResponse)) {\n    allEvents = mixpanelResponse;\n  }\n} catch (error) {\n  console.error(`Error parsing Mixpanel response for the batch:`, error.message);\n}\n\n// Group events by distinct_id for efficient lookup\nconst eventsByCustomerId = allEvents.reduce((acc, event) => {\n  const distinctId = event.properties?.distinct_id;\n  if (distinctId) {\n    if (!acc[distinctId]) {\n      acc[distinctId] = [];\n    }\n    acc[distinctId].push(event);\n  }\n  return acc;\n}, {});\n\nconst results = [];\n\nfor (const customer of originalBatch) {\n  const customerId = customer.customer_id;\n  const customerEvents = eventsByCustomerId[customerId] || [];\n  \n  const pageViewEvents = customerEvents.filter(event => event.event === eventName);\n  const pageViews = pageViewEvents.length;\n  \n  const uniquePages = new Set();\n  let lastPageView = null;\n\n  pageViewEvents.forEach(event => {\n    const props = event.properties || {};\n    if (props.page_url) {\n      uniquePages.add(props.page_url);\n    }\n    const eventTime = props.time || props.$time;\n    if (eventTime && (!lastPageView || eventTime > lastPageView)) {\n      lastPageView = eventTime;\n    }\n  });\n\n  results.push({\n    hubspot_id: customer.hubspot_id,\n    customer_id: customerId,\n    email: customer.email,\n    page_views_30d: pageViews,\n    unique_pages_30d: uniquePages.size,\n    last_page_view: lastPageView,\n    previous_page_views: customer.current_page_views || 0,\n    page_view_change: pageViews - (customer.current_page_views || 0),\n    processed_at: new Date().toISOString()\n  });\n}\n\nconsole.log(`Processed page view data for ${results.length} customers in the batch`);\nreturn results.map(res => ({ json: res }));"
+          "jsCode": "const items = $input.all();\nconst pageViewData = items.reduce((acc, item) => {\n  const id = item.json.properties.distinct_id;\n  if (!acc[id]) {\n    acc[id] = { page_views: 0 };\n  }\n  acc[id].page_views += 1;\n  return acc;\n}, {});\nreturn [{ json: pageViewData }];"
         },
-        "id": "43677bcf-72d5-4c92-86a3-cfee64a2326d",
+        "id": "Process: Page View Data",
         "name": "Process: Page View Data",
         "type": "n8n-nodes-base.code",
         "typeVersion": 1,
         "position": [
-          1140,
-          -220
+          1060,
+          -40
         ]
       },
       {
         "parameters": {
-          "conditions": {
-            "number": [
+          "resource": "contact",
+          "operation": "updateBatch",
+          "options": {
+            "properties": [
               {
-                "value1": "={{ $json.page_view_change }}",
-                "operation": "notEqual"
+                "property": "mixpanel_page_views",
+                "value": "={{ $json.page_views }}"
               }
             ]
           }
         },
-        "id": "877dab79-a8b3-4ba9-beaf-1b0721d07dc7",
-        "name": "Filter: Changed Metrics",
-        "type": "n8n-nodes-base.if",
-        "typeVersion": 1,
-        "position": [
-          1360,
-          -220
-        ]
-      },
-      {
-        "parameters": {
-          "authentication": "appToken",
-          "resource": "contact",
-          "operation": "update"
-        },
-        "id": "ccafbc57-4c27-4c79-8c0d-06135c4950bc",
-        "name": "HubSpot: Update Contact",
+        "id": "Update HubSpot Contacts",
+        "name": "Update HubSpot Contacts",
         "type": "n8n-nodes-base.hubspot",
-        "typeVersion": 1,
+        "typeVersion": 4,
         "position": [
-          1580,
-          -220
-        ],
-        "credentials": {
-          "hubspotAppToken": {
-            "id": "={{$credentials.HubSpot_App}}",
-            "name": "HubSpot App"
-          }
-        }
+          1260,
+          -40
+        ]
       },
       {
         "parameters": {
@@ -306,24 +235,13 @@
       },
       "Filter: Valid Customer IDs": {
         "main": [
-          [{"node": "Transform: Contact Data", "type": "main", "index": 0}],
           [{"node": "Error Handler", "type": "main", "index": 0}]
         ]
       },
-      "Transform: Contact Data": {
-        "main": [[{"node": "Mixpanel: Test Auth", "type": "main", "index": 0}]]
-      },
-      "Mixpanel: Test Auth": {
-        "main": [[{"node": "Validate Auth Success", "type": "main", "index": 0}]]
-      },
-      "Validate Auth Success": {
+      "Filter valid contacts": {
         "main": [
-          [{"node": "Split In Batches", "type": "main", "index": 0}],
-          [{"node": "Error Handler", "type": "main", "index": 0}]
+          [{"node": "Aggregate Contact IDs", "type": "main", "index": 0}]
         ]
-      },
-      "Split In Batches": {
-        "main": [[{"node": "Aggregate Contact IDs", "type": "main", "index": 0}]]
       },
       "Aggregate Contact IDs": {
         "main": [[{"node": "Mixpanel: Fetch Page Views", "type": "main", "index": 0}]]
@@ -332,12 +250,9 @@
         "main": [[{"node": "Process: Page View Data", "type": "main", "index": 0}]]
       },
       "Process: Page View Data": {
-        "main": [[{"node": "Filter: Changed Metrics", "type": "main", "index": 0}]]
+        "main": [[{"node": "Update HubSpot Contacts", "type": "main", "index": 0}]]
       },
-      "Filter: Changed Metrics": {
-        "main": [[{"node": "HubSpot: Update Contact", "type": "main", "index": 0}]]
-      },
-      "HubSpot: Update Contact": {
+      "Update HubSpot Contacts": {
         "main": [[{"node": "Log: Execution Summary", "type": "main", "index": 0}]]
       }
     },
