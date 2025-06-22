@@ -14,27 +14,11 @@
       },
       {
         "parameters": {
-          "values": {
-            "string": [
-              {
-                "name": "daysToSync",
-                "value": "30"
-              },
-              {
-                "name": "batchSize",
-                "value": "100"
-              },
-              {
-                "name": "mixpanelEventName",
-                "value": "Page View"
-              }
-            ]
-          },
-          "options": {}
+          "jsCode": "return {\n  json: {\n    daysToSync: 30,\n    batchSize: 100,\n    mixpanelEventName: 'Page View',\n    fromDate: $now.minus({ days: 30 }).toFormat('yyyy-MM-dd'),\n    toDate: $now.toFormat('yyyy-MM-dd')\n  }\n};"
         },
         "id": "config-node",
         "name": "Workflow Config",
-        "type": "n8n-nodes-base.set",
+        "type": "n8n-nodes-base.code",
         "typeVersion": 1,
         "position": [
           -800,
