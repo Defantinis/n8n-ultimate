@@ -140,7 +140,9 @@
       {
         "parameters": {
           "batchSize": "={{$node[\"Workflow Config\"].json.batchSize}}",
-          "options": {}
+          "options": {
+            "runOnce": true
+          }
         },
         "id": "067b1059-7d56-41d0-8713-e97780e0f032",
         "name": "Split In Batches",
@@ -153,16 +155,15 @@
       },
       {
         "parameters": {
-          "time": 1,
-          "unit": "seconds"
+          "jsCode": "const batch = $input.all();\nconst customerIds = batch.map(item => item.json.customer_id);\n\n// Return the IDs for the API call and the original batch data for merging later\nreturn [{\n  json: {\n    customer_ids: customerIds,\n    original_batch: batch.map(item => item.json)\n  }\n}];"
         },
-        "id": "wait-for-rate-limit",
-        "name": "Wait 1s",
-        "type": "n8n-nodes-base.wait",
+        "id": "aggregate-contact-ids",
+        "name": "Aggregate Contact IDs",
+        "type": "n8n-nodes-base.code",
         "typeVersion": 1,
         "position": [
-          480,
-          -40
+          700,
+          -220
         ]
       },
       {
@@ -187,19 +188,21 @@
               },
               {
                 "name": "where",
-                "value": "={{ JSON.stringify({\"distinct_id\": $json.customer_id}) }}"
+                "value": "={{ 'properties[\"$distinct_id\"] in ' + JSON.stringify($json.customer_ids) }}"
               }
             ]
           },
-          "options": {}
+          "options": {
+            "splitIntoItems": false
+          }
         },
         "id": "a2e8a229-2ead-40cc-bd75-6b8a4dcf25f2",
         "name": "Mixpanel: Fetch Page Views",
         "type": "n8n-nodes-base.httpRequest",
         "typeVersion": 3,
         "position": [
-          700,
-          -40
+          920,
+          -220
         ],
         "credentials": {
           "httpBasicAuth": {
@@ -210,15 +213,15 @@
       },
       {
         "parameters": {
-          "jsCode": "// Process Mixpanel events and calculate page view metrics with enhanced validation\nconst results = [];\nconst eventName = $node[\"Workflow Config\"].json.mixpanelEventName || 'Page View';\n\nfor (const item of $input.all()) {\n  const customer = item.json;\n  const mixpanelResponse = customer.mixpanel_response || item.json;\n  \n  let pageViews = 0;\n  let uniquePages = new Set();\n  let lastPageView = null;\n  \n  try {\n    let events = [];\n    // Handle different response formats\n    if (typeof mixpanelResponse === 'string' && mixpanelResponse.trim()) {\n      // Parse newline-delimited JSON\n      events = mixpanelResponse.split('\\n')\n        .filter(line => line.trim())\n        .map(line => JSON.parse(line));\n\n    } else if (Array.isArray(mixpanelResponse)) {\n      events = mixpanelResponse;\n    }\n\n    const pageViewEvents = events.filter(event => event.event === eventName);\n    pageViews = pageViewEvents.length;\n      \n    pageViewEvents.forEach(event => {\n      const props = event.properties || {};\n      if (props.page_url) {\n        uniquePages.add(props.page_url);\n      }\n      \n      const eventTime = props.time || props.$time;\n      if (eventTime && (!lastPageView || eventTime > lastPageView)) {\n        lastPageView = eventTime;\n      }\n    });\n    \n  } catch (error) {\n    console.error(`Error processing events for ${customer.customer_id}:`, error.message);\n    console.error('Problematic Mixpanel Response:', mixpanelResponse);\n    // Continue with default values\n  }\n  \n  results.push({\n    json: {\n      hubspot_id: customer.hubspot_id,\n      customer_id: customer.customer_id,\n      email: customer.email,\n      page_views_30d: pageViews,\n      unique_pages_30d: uniquePages.size,\n      last_page_view: lastPageView,\n      previous_page_views: customer.current_page_views || 0,\n      page_view_change: pageViews - (customer.current_page_views || 0),\n      processed_at: new Date().toISOString()\n    }\n  });\n}\n\nconsole.log(`Processed page view data for ${results.length} customers`);\nreturn results;"
+          "jsCode": "// Process Mixpanel events for the entire batch and calculate page view metrics\nconst inputData = $input.first().json;\nconst originalBatch = inputData.original_batch;\nconst mixpanelResponse = inputData.body;\nconst eventName = $node[\"Workflow Config\"].json.mixpanelEventName || 'Page View';\n\nlet allEvents = [];\ntry {\n  if (typeof mixpanelResponse === 'string' && mixpanelResponse.trim()) {\n    allEvents = mixpanelResponse.split('\\n').filter(line => line.trim()).map(line => JSON.parse(line));\n  } else if (Array.isArray(mixpanelResponse)) {\n    allEvents = mixpanelResponse;\n  }\n} catch (error) {\n  console.error(`Error parsing Mixpanel response for the batch:`, error.message);\n}\n\n// Group events by distinct_id for efficient lookup\nconst eventsByCustomerId = allEvents.reduce((acc, event) => {\n  const distinctId = event.properties?.distinct_id;\n  if (distinctId) {\n    if (!acc[distinctId]) {\n      acc[distinctId] = [];\n    }\n    acc[distinctId].push(event);\n  }\n  return acc;\n}, {});\n\nconst results = [];\n\nfor (const customer of originalBatch) {\n  const customerId = customer.customer_id;\n  const customerEvents = eventsByCustomerId[customerId] || [];\n  \n  const pageViewEvents = customerEvents.filter(event => event.event === eventName);\n  const pageViews = pageViewEvents.length;\n  \n  const uniquePages = new Set();\n  let lastPageView = null;\n\n  pageViewEvents.forEach(event => {\n    const props = event.properties || {};\n    if (props.page_url) {\n      uniquePages.add(props.page_url);\n    }\n    const eventTime = props.time || props.$time;\n    if (eventTime && (!lastPageView || eventTime > lastPageView)) {\n      lastPageView = eventTime;\n    }\n  });\n\n  results.push({\n    hubspot_id: customer.hubspot_id,\n    customer_id: customerId,\n    email: customer.email,\n    page_views_30d: pageViews,\n    unique_pages_30d: uniquePages.size,\n    last_page_view: lastPageView,\n    previous_page_views: customer.current_page_views || 0,\n    page_view_change: pageViews - (customer.current_page_views || 0),\n    processed_at: new Date().toISOString()\n  });\n}\n\nconsole.log(`Processed page view data for ${results.length} customers in the batch`);\nreturn results.map(res => ({ json: res }));"
         },
         "id": "43677bcf-72d5-4c92-86a3-cfee64a2326d",
         "name": "Process: Page View Data",
         "type": "n8n-nodes-base.code",
         "typeVersion": 1,
         "position": [
-          920,
-          -40
+          1140,
+          -220
         ]
       },
       {
@@ -237,8 +240,8 @@
         "type": "n8n-nodes-base.if",
         "typeVersion": 1,
         "position": [
-          1140,
-          -40
+          1360,
+          -220
         ]
       },
       {
@@ -252,8 +255,8 @@
         "type": "n8n-nodes-base.hubspot",
         "typeVersion": 1,
         "position": [
-          1360,
-          -40
+          1580,
+          -220
         ],
         "credentials": {
           "hubspotAppToken": {
@@ -271,13 +274,13 @@
         "type": "n8n-nodes-base.code",
         "typeVersion": 1,
         "position": [
-          1580,
-          -40
+          1800,
+          -220
         ]
       },
       {
         "parameters": {
-          "jsCode": "// Handle and log errors from the workflow with enhanced error detection and context\nconst error = $input.first();\nconst inputData = error.json || {};\n\n// Determine specific error type based on data structure\nlet errorMessage = 'Unknown error occurred in the workflow.';\nlet errorType = 'GenericWorkflowError';\nlet suggestion = 'Check the workflow execution logs for details.';\n\n// Check for filter failure (no mixpanel_customer_id)\nif (inputData.properties && !inputData.properties.mixpanel_customer_id) {\n  errorMessage = `Contact with HubSpot ID ${inputData.id || inputData.vid} was filtered out as expected because the 'mixpanel_customer_id' field is empty.`;\n  errorType = 'FilterExclusion';\n  suggestion = 'This is usually normal. Ensure the contact has a `mixpanel_customer_id` in HubSpot if they should be processed.';\n} \n// Check for authentication failures from the dedicated test node\nelse if (inputData.mixpanel_auth_status === 'failed' || inputData.auth_error) {\n  errorMessage = inputData.auth_error || 'Mixpanel authentication failed during pre-flight check.';\n  errorType = 'AuthenticationFailed';\n  suggestion = 'Verify that your Mixpanel credentials are correct and have the necessary permissions.';\n}\n// Check for HTTP request failures\nelse if (inputData.error && inputData.error.code) {\n    errorMessage = `An API error occurred: ${inputData.error.message || 'No message'}. Status Code: ${inputData.error.code}`;\n    errorType = 'ApiError';\n    suggestion = `Check the API documentation for status code ${inputData.error.code} and review the request sent from the failing node.`\n}\n// Check for other code execution errors\nelse if (error.error) {\n  errorMessage = error.error.message;\n  errorType = 'NodeExecutionError';\n  suggestion = `A code error occurred in node '${error.execution.node.name}'. Check the node's code and input data.`;\n}\n\nconst errorInfo = {\n  workflow: {\n    name: 'HubSpot → Mixpanel Integration',\n    id: '{{$workflow.id}}',\n    executionId: '{{$execution.id}}'\n  },\n  error: {\n    type: errorType,\n    message: errorMessage,\n    suggestion: suggestion,\n    timestamp: new Date().toISOString(),\n    node: error.execution ? {\n      name: error.execution.node.name,\n      type: error.execution.node.type,\n      id: error.execution.node.id\n    } : { name: 'Unknown' }\n  },\n  context: {\n      hubspotId: inputData.id || inputData.vid || 'N/A',\n      email: inputData.properties?.email || inputData.email || 'N/A'\n  },\n  fullError: error\n};\n\n// More readable console output\nconsole.error(`\n🚨 WORKFLOW ERROR: ${errorInfo.error.type}\n--------------------------------------------------\n- Message: ${errorInfo.error.message}\n- Suggestion: ${errorInfo.error.suggestion}\n- Node: ${errorInfo.error.node.name} (${errorInfo.error.node.type})\n- HubSpot ID: ${errorInfo.context.hubspotId}\n- Email: ${errorInfo.context.email}\n- Timestamp: ${errorInfo.error.timestamp}\n--------------------------------------------------\n`);\n\nreturn [errorInfo];"
+          "jsCode": "// Handle and log errors from the workflow with enhanced error detection and context\nconst error = $input.first();\nconst inputData = error.json || {};\n\n// Determine specific error type based on data structure\nlet errorMessage = 'Unknown error occurred in the workflow.';\nlet errorType = 'GenericWorkflowError';\nlet suggestion = 'Check the workflow execution logs for details.';\n\n// Check for filter failure (no mixpanel_customer_id)\nif (inputData.properties && !inputData.properties.mixpanel_customer_id) {\n  errorMessage = `Contact with HubSpot ID ${inputData.id || inputData.vid} was filtered out as expected because the 'mixpanel_customer_id' field is empty.`;\n  errorType = 'FilterExclusion';\n  suggestion = 'This is usually normal. Ensure the contact has a `mixpanel_customer_id` in HubSpot if they should be processed.';\n} \n// Check for authentication failures from the dedicated test node\nelse if (inputData.mixpanel_auth_status === 'failed' || inputData.auth_error) {\n  errorMessage = inputData.auth_error || 'Mixpanel authentication failed during pre-flight check.';\n  errorType = 'AuthenticationFailed';\n  suggestion = 'Verify that your Mixpanel credentials are correct and have the necessary permissions.';\n}\n// Check for HTTP request failures\nelse if (inputData.error && inputData.error.code) {\n    errorMessage = `An API error occurred: ${inputData.error.message || 'No message'}. Status Code: ${inputData.error.code}`;\n    errorType = 'ApiError';\n    suggestion = `Check the API documentation for status code ${inputData.error.code} and review the request sent from the failing node.`\n}\n// Check for other code execution errors\nelse if (error.error) {\n  errorMessage = error.error.message;\n  errorType = 'NodeExecutionError';\n  suggestion = `A code error occurred in node '${error.execution.node.name}'. Check the node's code and input data.`;\n}\n\nconst errorInfo = {\n  workflow: {\n    name: 'HubSpot → Mixpanel Integration',\n    id: '{{$workflow.id}}',\n    executionId: '{{$execution.id}}'\n  },\n  error: {\n    type: errorType,\n    message: errorMessage,\n    suggestion: suggestion,\n    timestamp: new Date().toISOString(),\n    node: error.execution ? {\n      name: error.execution.node.name,\n      type: error.execution.node.type,\n      id: error.execution.node.id\n    } : { name: 'Unknown' }\n  },\n  context: {\n      hubspotId: inputData.id || inputData.vid || 'N/A',\n      email: inputData.properties?.email || inputData.email || 'N/A'\n  },\n  fullError: error\n};\n\n// More readable console output\nconsole.error(`\n🚨 WORKFLOW ERROR: ${errorInfo.error.type}\\n--------------------------------------------------\\n- Message: ${errorInfo.error.message}\\n- Suggestion: ${errorInfo.error.suggestion}\\n- Node: ${errorInfo.error.node.name} (${errorInfo.error.node.type})\\n- HubSpot ID: ${errorInfo.context.hubspotId}\\n- Email: ${errorInfo.context.email}\\n- Timestamp: ${errorInfo.error.timestamp}\\n--------------------------------------------------\\n`);\n\nreturn [{ json: errorInfo }];"
         },
         "id": "c25d6eed-b2ab-4409-9afe-5a5db843cb84",
         "name": "Error Handler",
@@ -319,9 +322,9 @@
         ]
       },
       "Split In Batches": {
-        "main": [[{"node": "Wait 1s", "type": "main", "index": 0}]]
+        "main": [[{"node": "Aggregate Contact IDs", "type": "main", "index": 0}]]
       },
-      "Wait 1s": {
+      "Aggregate Contact IDs": {
         "main": [[{"node": "Mixpanel: Fetch Page Views", "type": "main", "index": 0}]]
       },
       "Mixpanel: Fetch Page Views": {
