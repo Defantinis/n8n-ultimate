@@ -13,12 +13,22 @@
     "test-parser": "npm run build && node dist/test-parser.js",
     "dev": "tsc --watch"
   },
-  "keywords": ["n8n", "workflow", "automation", "ai", "parser"],
+  "keywords": [
+    "n8n",
+    "workflow",
+    "automation",
+    "ai",
+    "parser"
+  ],
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@types/node": "^20.19.1",
     "task-master-ai": "^0.17.1",
-    "typescript": "^5.0.0",
-    "@types/node": "^20.0.0"
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "@sentry/node": "^9.30.0",
+    "dd-trace": "^5.56.0"
   }
 }

@@ -2,6 +2,9 @@ import { EventEmitter } from 'events';
 import { writeFileSync, appendFileSync, existsSync, mkdirSync } from 'fs';
 import { join } from 'path';
 import { ClassifiedError, ErrorSeverity, ErrorCategory, ErrorType } from './error-classifier';
+import fetch from 'node-fetch';
+import * as Sentry from '@sentry/node';
+import tracer from 'dd-trace';
 
 /**
  * Log levels for different types of information
@@ -122,7 +125,7 @@ export interface LogEntry {
  * Log output destination configuration
  */
 export interface LogOutput {
-  type: 'console' | 'file' | 'database' | 'remote' | 'custom';
+  type: 'console' | 'file' | 'database' | 'remote' | 'custom' | 'sentry' | 'datadog';
   enabled: boolean;
   level: LogLevel;
   format: 'json' | 'text' | 'structured';
@@ -140,6 +143,27 @@ export interface LogOutput {
   
   // Custom output
   customHandler?: (entry: LogEntry) => Promise<void>;
+  
+  // Datadog output specific
+  remoteType?: 'datadog' | 'custom';
+  ddsource?: string;
+  ddtags?: string;
+  hostname?: string;
+  service?: string;
+}
+
+export interface SentryLogOutput extends LogOutput {
+  type: 'sentry';
+  dsn: string;
+}
+
+export interface DatadogLogOutput extends LogOutput {
+  type: 'datadog';
+  remoteType: 'datadog';
+  ddsource?: string;
+  ddtags?: string;
+  hostname?: string;
+  service?: string;
 }
 
 /**
@@ -274,6 +298,7 @@ export class AdvancedErrorLogger extends EventEmitter {
   private metricsInterval: NodeJS.Timeout | null = null;
   private batchQueue: LogEntry[] = [];
   private flushTimer: NodeJS.Timeout | null = null;
+  private isSentryInitialized = false;
 
   constructor(options: {
     logDirectory?: string;
@@ -290,6 +315,17 @@ export class AdvancedErrorLogger extends EventEmitter {
     this.initializeDefaultOutputs();
     this.initializeDefaultAlertRules();
     this.startMetricsCollection();
+
+    this.outputs.forEach(output => {
+      if (output.type === 'sentry' && output.enabled && !this.isSentryInitialized) {
+        const sentryOutput = output as SentryLogOutput;
+        Sentry.init({ dsn: sentryOutput.dsn });
+        this.isSentryInitialized = true;
+      }
+      if (output.type === 'datadog' && output.enabled) {
+        tracer.init(); // initializes DD tracer
+      }
+    });
   }
 
   /**
@@ -580,6 +616,10 @@ export class AdvancedErrorLogger extends EventEmitter {
       }
     }
 
+    if (this.isSentryInitialized) {
+      await Sentry.close(2000);
+    }
+
     this.emit('shutdown');
   }
 
@@ -680,6 +720,9 @@ export class AdvancedErrorLogger extends EventEmitter {
    */
   private async processOutput(entry: LogEntry, output: LogOutput): Promise<void> {
     try {
+      if (!this.shouldProcessEntry(entry, output)) {
+        return;
+      }
       switch (output.type) {
         case 'console':
           this.processConsoleOutput(entry, output);
@@ -690,15 +733,20 @@ export class AdvancedErrorLogger extends EventEmitter {
         case 'remote':
           await this.processRemoteOutput(entry, output);
           break;
+        case 'sentry':
+          this.processSentryOutput(entry, output as SentryLogOutput);
+          break;
+        case 'datadog':
+          this.processDatadogOutput(entry, output as DatadogLogOutput);
+          break;
         case 'custom':
           if (output.customHandler) {
             await output.customHandler(entry);
           }
           break;
       }
-    } catch (error) {
-      // Emit error but don't throw to avoid infinite loops
-      this.emit('output_error', { output, error, entry });
+    } catch (err) {
+      console.error(`Failed to process log output: ${(err as Error).message}`);
     }
   }
 
@@ -750,21 +798,79 @@ export class AdvancedErrorLogger extends EventEmitter {
    * Process remote output (batch)
    */
   private async processRemoteOutput(entry: LogEntry, output: LogOutput): Promise<void> {
-    if (!output.endpoint) return;
-
-    // Add to batch queue
-    this.batchQueue.push(entry);
-    
-    // Flush if batch is full
-    if (this.batchQueue.length >= (output.batchSize || 100)) {
-      await this.flushBatch(output);
+    if (output.batchSize && output.batchSize > 1) {
+      return;
     }
-    
-    // Set flush timer if not already set
-    if (!this.flushTimer && output.flushInterval) {
-      this.flushTimer = setTimeout(() => {
-        this.flushBatch(output);
-      }, output.flushInterval);
+
+    const { endpoint, apiKey } = output;
+    if (!endpoint) {
+      console.error("Remote output is missing endpoint URL.");
+      return;
+    }
+
+    const headers: { [key: string]: string } = { 'Content-Type': 'application/json' };
+    if (apiKey) {
+      headers['Authorization'] = `Bearer ${apiKey}`;
+    }
+
+    try {
+      await fetch(endpoint, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(entry),
+      });
+    } catch (error) {
+      console.error(`Failed to send log to remote endpoint: ${(error as Error).message}`);
+    }
+  }
+
+  /**
+   * Process sentry output
+   */
+  private processSentryOutput(entry: LogEntry, output: SentryLogOutput): void {
+    if (entry.error) {
+      Sentry.captureException(entry.error, {
+        extra: { ...entry },
+        tags: {
+          category: entry.category,
+          source: entry.source,
+          tags: entry.metadata.tags.join(', '),
+        },
+        user: { id: entry.context.userId, ip_address: entry.telemetry?.userInteraction.ipAddress },
+        level: this.mapLogLevelToSentry(entry.level),
+      });
+    } else {
+      Sentry.captureMessage(entry.message, {
+        extra: { ...entry },
+        tags: {
+          category: entry.category,
+          source: entry.source,
+          tags: entry.metadata.tags.join(', '),
+        },
+        user: { id: entry.context.userId, ip_address: entry.telemetry?.userInteraction.ipAddress },
+        level: this.mapLogLevelToSentry(entry.level),
+      });
+    }
+  }
+
+  /**
+   * Process datadog output
+   */
+  private processDatadogOutput(entry: LogEntry, output: DatadogLogOutput): void {
+    const span = tracer.scope().active();
+    if (span) {
+      if (entry.error) {
+        span.setTag('error', true);
+        span.setTag('error.msg', entry.error.message);
+        span.setTag('error.stack', entry.error.stackTrace);
+        span.setTag('error.type', entry.error.originalError.name);
+      }
+      span.log({
+        message: entry.message,
+        level: entry.level,
+        ...entry.context,
+        ...entry.metadata,
+      });
     }
   }
 
@@ -781,7 +887,9 @@ export class AdvancedErrorLogger extends EventEmitter {
       this.flushTimer = null;
     }
 
-    if (output?.endpoint) {
+    const outputsToFlush = output ? [output] : this.outputs.filter(o => o.type === 'remote');
+
+    for (const output of outputsToFlush) {
       try {
         // In a real implementation, this would use fetch or axios
         // For now, we'll just emit an event
@@ -914,24 +1022,38 @@ export class AdvancedErrorLogger extends EventEmitter {
    * Initialize default outputs
    */
   private initializeDefaultOutputs(): void {
-    // Console output
-    this.addOutput({
-      type: 'console',
-      enabled: true,
-      level: LogLevel.INFO,
-      format: 'text'
-    });
-
-    // File output
-    this.addOutput({
-      type: 'file',
-      enabled: true,
-      level: LogLevel.DEBUG,
-      format: 'json',
-      filePath: join(this.logDirectory, 'error.log'),
-      maxFileSize: 10, // 10MB
-      maxFiles: 5
-    });
+    this.outputs = [
+      {
+        type: 'console',
+        enabled: true,
+        level: LogLevel.INFO,
+        format: 'text'
+      },
+      {
+        type: 'file',
+        enabled: true,
+        level: LogLevel.DEBUG,
+        format: 'json',
+        filePath: join(this.logDirectory, 'activity.log'),
+        maxFileSize: 10, // 10 MB
+        maxFiles: 5,
+      },
+      {
+        type: 'sentry',
+        enabled: false,
+        level: LogLevel.WARN,
+        format: 'structured',
+        dsn: process.env.SENTRY_DSN || '',
+      } as SentryLogOutput,
+      {
+        type: 'datadog',
+        enabled: false,
+        level: LogLevel.INFO,
+        format: 'structured',
+        remoteType: 'datadog',
+        service: 'n8n-ultimate',
+      } as DatadogLogOutput,
+    ];
   }
 
   /**
@@ -992,7 +1114,7 @@ export class AdvancedErrorLogger extends EventEmitter {
   }
 
   private generateCorrelationId(): string {
-    return `corr_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    return `corr-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
   }
 
   private generateAlertId(): string {
@@ -1221,6 +1343,25 @@ export class AdvancedErrorLogger extends EventEmitter {
     // In a real implementation, this would send emails, webhooks, etc.
     // For now, just emit events
     this.emit('alert_action_executed', { rule, alert });
+  }
+
+  private mapLogLevelToSentry(level: LogLevel): Sentry.SeverityLevel {
+    switch (level) {
+      case LogLevel.TRACE:
+        return 'debug';
+      case LogLevel.DEBUG:
+        return 'debug';
+      case LogLevel.INFO:
+        return 'info';
+      case LogLevel.WARN:
+        return 'warning';
+      case LogLevel.ERROR:
+        return 'error';
+      case LogLevel.FATAL:
+        return 'fatal';
+      default:
+        return 'info';
+    }
   }
 }
 
