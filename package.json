@@ -29,6 +29,7 @@
   },
   "dependencies": {
     "@sentry/node": "^9.30.0",
-    "dd-trace": "^5.56.0"
+    "dd-trace": "^5.56.0",
+    "hot-shots": "^11.0.0"
   }
 }
