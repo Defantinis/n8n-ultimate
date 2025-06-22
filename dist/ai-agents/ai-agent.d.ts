@@ -1,12 +1,37 @@
-import { WorkflowRequirements, WorkflowPlan, SimplificationSuggestion } from '../generators/workflow-generator.js';
+import { WorkflowPlan, NodeSpecification } from '../types/n8n-workflow.js';
 import { N8nWorkflow, N8nNode } from '../types/n8n-workflow.js';
+export interface WorkflowRequirements {
+    description: string;
+    type: 'automation' | 'data-processing' | 'integration' | 'custom' | 'api-integration';
+    inputs?: Array<{
+        name: string;
+        type: string;
+        description: string;
+    }>;
+    outputs?: Array<{
+        name: string;
+        type: string;
+        description: string;
+    }>;
+    steps?: string[];
+    constraints?: Record<string, any>;
+    tags?: string[];
+}
+export interface SimplificationSuggestion {
+    type: 'split-node' | 'merge-nodes' | 'simplify-parameters' | 'replace-node';
+    nodeId: string;
+    description: string;
+    parameters?: Record<string, any>;
+    newNode?: NodeSpecification;
+}
 /**
  * AI Agent that uses Ollama to analyze requirements and plan workflows
  */
 export declare class AIAgent {
     private readonly ollamaBaseUrl;
     private readonly modelName;
-    constructor(ollamaBaseUrl?: string, modelName?: string);
+    private readonly enableCaching;
+    constructor(ollamaBaseUrl?: string, modelName?: string, enableCaching?: boolean);
     /**
      * Analyze user requirements to understand what kind of workflow is needed
      */
@@ -20,6 +45,18 @@ export declare class AIAgent {
      */
     suggestSimplifications(workflow: N8nWorkflow, complexNodes: N8nNode[], requirements: WorkflowRequirements): Promise<SimplificationSuggestion[]>;
     /**
+     * Get cache statistics for performance monitoring
+     */
+    getCacheStats(): import("../performance/ollama-cache-manager.js").CacheStats;
+    /**
+     * Clear cache (useful for testing or manual cache management)
+     */
+    clearCache(): void;
+    /**
+     * Preload common workflow generation prompts into cache
+     */
+    preloadCommonPrompts(): Promise<void>;
+    /**
      * Build the analysis prompt for Ollama
      */
     private buildAnalysisPrompt;
@@ -32,7 +69,7 @@ export declare class AIAgent {
      */
     private buildSimplificationPrompt;
     /**
-     * Call Ollama API
+     * Call Ollama API with caching support
      */
     private callOllama;
     /**

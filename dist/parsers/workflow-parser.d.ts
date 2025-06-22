@@ -3,7 +3,6 @@ import { N8nWorkflow, N8nNode, ParsedWorkflow } from '../types/n8n-workflow.js';
  * Main workflow parser for n8n JSON files
  */
 export declare class WorkflowParser {
-    private validator;
     constructor();
     /**
      * Parse a workflow from a JSON file
@@ -49,10 +48,10 @@ export declare class WorkflowParser {
             node: string;
             type: string;
             index: number;
-        }[][];
+        }[];
     };
     /**
-     * Get nodes that connect to a specific node
+     * Get all nodes that connect to a specific node's input
      */
     getIncomingConnections(workflow: N8nWorkflow, targetNodeName: string): Array<{
         sourceNode: string;
@@ -61,7 +60,7 @@ export declare class WorkflowParser {
         inputIndex: number;
     }>;
     /**
-     * Generate a workflow summary
+     * Generate a human-readable summary of the workflow
      */
     generateSummary(parsedWorkflow: ParsedWorkflow): string;
 }

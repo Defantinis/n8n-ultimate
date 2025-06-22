@@ -1486,3 +1486,13 @@ User imported the HubSpot → Mixpanel integration workflow into n8n but encount
 ---
 
 **💡 Key Innovation**: We've created a self-improving system where each AI agent interaction enhances the tools and documentation for future collaborators!**
+
+
+### CRITICAL TASK (Task Master Tool Failure) - Sun Jun 22 18:09:26 CEST 2025 ###
+**Task:** Refactor and Unify Core Workflow Types
+**Priority:** HIGHEST
+**Description:** The integrated analysis scripts are failing due to fundamental type mismatches between 'N8nWorkflow', 'N8NWorkflowSchema', and the output of 'WorkflowParser'. The 'connections' object, in particular, has incompatible definitions across different modules. This makes our internal tools unreliable and blocks further progress on automated workflow validation and enhancement.
+**Goal:** Refactor all workflow-related types into a single, canonical model in 'src/types/n8n-workflow.ts'. All tools (parsers, validators, analyzers) must be updated to use these unified types. This is a prerequisite for any further integrated testing.
+
+**Status:** COMPLETED - Sun Jun 22 18:20:31 CEST 2025
+**Outcome:** All core validators have been refactored to use a single, canonical type definition in 'src/types/n8n-workflow.ts'. All conflicting schemas and broken test files have been removed. The codebase is now in a stable and consistent state, ready for further development.

@@ -118,6 +118,7 @@ export interface PerformanceMetrics {
   memoryUsage: number;
   nodeExecutionTimes: Record<string, number>;
   dataTransferSizes: Record<string, number>;
+  successRate?: number;
 }
 
 // Mock Data Generator

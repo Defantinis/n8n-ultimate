@@ -1,6 +1,5 @@
-import { AIAgent, RequirementAnalysis } from './ai-agent.js';
+import { AIAgent, RequirementAnalysis, WorkflowRequirements } from './ai-agent.js';
 import { StreamingOllamaClient, StreamingConfig, StreamingRequest } from './streaming-ollama-client.js';
-import { WorkflowRequirements, SimplificationSuggestion } from '../generators/workflow-generator.js';
 import { WorkflowPlan, NodeSpecification } from '../types/n8n-workflow.js';
 import { N8nWorkflow, N8nNode } from '../types/n8n-workflow.js';
 import { EventEmitter } from 'events';

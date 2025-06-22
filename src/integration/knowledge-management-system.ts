@@ -46,7 +46,9 @@ export enum KnowledgeType {
   BEST_PRACTICE = 'best_practice',
   ANTI_PATTERN = 'anti_pattern',
   USER_FEEDBACK = 'user_feedback',
-  SYSTEM_INSIGHT = 'system_insight'
+  SYSTEM_INSIGHT = 'system_insight',
+  TESTING_PATTERN = 'testing_pattern',
+  LEARNING_INSIGHT = 'learning_insight'
 }
 
 /**
@@ -60,7 +62,8 @@ export enum KnowledgeCategory {
   TESTING = 'testing',
   DOCUMENTATION = 'documentation',
   USER_EXPERIENCE = 'user_experience',
-  AI_INTEGRATION = 'ai_integration'
+  AI_INTEGRATION = 'ai_integration',
+  OPTIMIZATION = 'optimization'
 }
 
 /**
@@ -74,7 +77,9 @@ export enum KnowledgeSource {
   DOCUMENTATION_SYSTEM = 'documentation_system',
   USER_INTERACTION = 'user_interaction',
   PERFORMANCE_MONITOR = 'performance_monitor',
-  ERROR_HANDLER = 'error_handler'
+  ERROR_HANDLER = 'error_handler',
+  AUTOMATED_TESTING = 'automated_testing',
+  AUTOMATED_ANALYSIS = 'automated_analysis'
 }
 
 // ============================================================================

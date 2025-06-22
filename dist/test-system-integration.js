@@ -1,14 +1,12 @@
-"use strict";
 /**
  * System Integration Testing for n8n-ultimate Performance Optimizations
  */
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.SystemIntegrationTester = void 0;
-const fs = require("fs/promises");
-const path = require("path");
-class SystemIntegrationTester {
+import * as fs from 'fs/promises';
+import * as path from 'path';
+export class SystemIntegrationTester {
+    results;
+    startTime = 0;
     constructor() {
-        this.startTime = 0;
         this.results = {
             timestamp: new Date().toISOString(),
             overall: { passed: false, duration: 0, score: 0 },
@@ -97,4 +95,4 @@ class SystemIntegrationTester {
         console.log(`Test results saved to: ${outputPath}`);
     }
 }
-exports.SystemIntegrationTester = SystemIntegrationTester;
+//# sourceMappingURL=test-system-integration.js.map

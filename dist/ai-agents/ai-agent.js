@@ -3,6 +3,9 @@ import { ollamaCacheManager } from '../performance/ollama-cache-manager.js';
  * AI Agent that uses Ollama to analyze requirements and plan workflows
  */
 export class AIAgent {
+    ollamaBaseUrl;
+    modelName;
+    enableCaching;
     constructor(ollamaBaseUrl = 'http://localhost:11434', modelName = 'deepseek-r1:14b', enableCaching = true) {
         this.ollamaBaseUrl = ollamaBaseUrl;
         this.modelName = modelName;
@@ -496,3 +499,4 @@ Focus on maintaining functionality while reducing complexity.`;
         return nodeTypes;
     }
 }
+//# sourceMappingURL=ai-agent.js.map

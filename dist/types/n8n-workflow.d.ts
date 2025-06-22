@@ -1,19 +1,21 @@
 /**
  * TypeScript type definitions for n8n workflow structure
- * Based on analysis of n8nscraper.json workflow
+ * This is the canonical source of truth for workflow-related types.
  */
 export interface N8nWorkflow {
     name: string;
+    active: boolean;
     nodes: N8nNode[];
     connections: N8nConnections;
-    active: boolean;
-    settings: N8nSettings;
-    id: string;
-    meta: N8nMeta;
-    tags?: string[];
     createdAt?: string;
     updatedAt?: string;
+    id: string;
     versionId?: string;
+    meta?: WorkflowMetadata;
+    settings?: WorkflowSettings;
+    staticData?: Record<string, any>;
+    pinData?: Record<string, any>;
+    tags?: WorkflowTag[];
 }
 export interface N8nNode {
     parameters: Record<string, any>;
@@ -33,20 +35,23 @@ export interface N8nNode {
     maxTries?: number;
     waitBetweenTries?: number;
     onError?: 'stopWorkflow' | 'continueRegularOutput' | 'continueErrorOutput';
+    notesInFlow?: boolean;
+    color?: string;
 }
 export interface N8nConnections {
     [nodeName: string]: {
-        [outputType: string]: Array<Array<{
+        [outputType: string]: Array<{
             node: string;
             type: string;
             index: number;
-        }>>;
+        }>;
     };
 }
-export interface N8nSettings {
+export interface WorkflowSettings {
     executionOrder?: 'v0' | 'v1';
     saveManualExecutions?: boolean;
-    callerPolicy?: string;
+    callerPolicy?: 'workflowsFromSameOwner' | 'workflowsFromAList' | 'any';
+    callerIds?: string;
     errorWorkflow?: string;
     timezone?: string;
     saveExecutionProgress?: boolean;
@@ -54,10 +59,16 @@ export interface N8nSettings {
     saveDataSuccessExecution?: 'all' | 'none';
     executionTimeout?: number;
 }
-export interface N8nMeta {
+export interface WorkflowMetadata {
     instanceId?: string;
     templateId?: string;
     templateCredsSetupCompleted?: boolean;
+}
+export interface WorkflowTag {
+    id: string;
+    name: string;
+    createdAt?: string;
+    updatedAt?: string;
 }
 export interface HttpRequestParameters {
     url: string;
@@ -111,14 +122,14 @@ export interface ValidationResult {
     warnings: ValidationWarning[];
 }
 export interface ValidationError {
-    type: 'structure' | 'node' | 'connection' | 'parameter';
+    type: 'structure' | 'node' | 'connection' | 'parameter' | 'data_transformation' | 'data_flow_continuity' | 'node_data_requirements' | 'workflow' | 'cycle' | 'performance';
     message: string;
     nodeId?: string;
     field?: string;
     severity: 'error' | 'warning';
 }
 export interface ValidationWarning {
-    type: 'performance' | 'compatibility' | 'best-practice';
+    type: 'performance' | 'compatibility' | 'best-practice' | 'data_transformation' | 'data_flow_continuity' | 'node_data_requirements' | 'connection' | 'node';
     message: string;
     nodeId?: string;
     suggestion?: string;
@@ -133,6 +144,25 @@ export interface ParsedWorkflow {
         maxDepth: number;
         estimatedComplexity: number;
     };
-    validation: ValidationResult;
+}
+export interface WorkflowPlan {
+    nodes: NodeSpecification[];
+    flow: FlowConnection[];
+    estimatedComplexity: number;
+    rationale: string;
+}
+export interface NodeSpecification {
+    id: string;
+    name: string;
+    type: string;
+    parameters: Record<string, any>;
+    description: string;
+    position?: [number, number];
+}
+export interface FlowConnection {
+    from: string;
+    to: string;
+    type: string;
+    condition?: string;
 }
 //# sourceMappingURL=n8n-workflow.d.ts.map

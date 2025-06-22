@@ -25,6 +25,8 @@ export var KnowledgeType;
     KnowledgeType["ANTI_PATTERN"] = "anti_pattern";
     KnowledgeType["USER_FEEDBACK"] = "user_feedback";
     KnowledgeType["SYSTEM_INSIGHT"] = "system_insight";
+    KnowledgeType["TESTING_PATTERN"] = "testing_pattern";
+    KnowledgeType["LEARNING_INSIGHT"] = "learning_insight";
 })(KnowledgeType || (KnowledgeType = {}));
 /**
  * Categories for organizing knowledge
@@ -39,6 +41,7 @@ export var KnowledgeCategory;
     KnowledgeCategory["DOCUMENTATION"] = "documentation";
     KnowledgeCategory["USER_EXPERIENCE"] = "user_experience";
     KnowledgeCategory["AI_INTEGRATION"] = "ai_integration";
+    KnowledgeCategory["OPTIMIZATION"] = "optimization";
 })(KnowledgeCategory || (KnowledgeCategory = {}));
 /**
  * Sources where knowledge originates
@@ -53,6 +56,8 @@ export var KnowledgeSource;
     KnowledgeSource["USER_INTERACTION"] = "user_interaction";
     KnowledgeSource["PERFORMANCE_MONITOR"] = "performance_monitor";
     KnowledgeSource["ERROR_HANDLER"] = "error_handler";
+    KnowledgeSource["AUTOMATED_TESTING"] = "automated_testing";
+    KnowledgeSource["AUTOMATED_ANALYSIS"] = "automated_analysis";
 })(KnowledgeSource || (KnowledgeSource = {}));
 // ============================================================================
 // EXPORT CONFIGURATION

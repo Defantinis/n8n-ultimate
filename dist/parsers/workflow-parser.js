@@ -1,11 +1,10 @@
 import { readFileSync, existsSync } from 'fs';
-import { WorkflowValidator } from '../validators/workflow-validator.js';
 /**
  * Main workflow parser for n8n JSON files
  */
 export class WorkflowParser {
     constructor() {
-        this.validator = new WorkflowValidator();
+        // No validator needed in the parser
     }
     /**
      * Parse a workflow from a JSON file
@@ -38,14 +37,11 @@ export class WorkflowParser {
      * Parse a workflow object
      */
     async parseWorkflow(workflow) {
-        // Validate the workflow structure
-        const validation = await this.validator.validate(workflow);
         // Analyze the workflow metadata
         const metadata = this.analyzeWorkflowMetadata(workflow);
         return {
             workflow,
             metadata,
-            validation
         };
     }
     /**
@@ -58,9 +54,7 @@ export class WorkflowParser {
         let connectionCount = 0;
         Object.values(workflow.connections).forEach(nodeConnections => {
             Object.values(nodeConnections).forEach(outputConnections => {
-                outputConnections.forEach(connectionArray => {
-                    connectionCount += connectionArray.length;
-                });
+                connectionCount += outputConnections.length;
             });
         });
         // Detect loops in the workflow
@@ -96,11 +90,10 @@ export class WorkflowParser {
             const connections = workflow.connections[nodeName];
             if (connections) {
                 for (const outputType of Object.keys(connections)) {
-                    for (const connectionArray of connections[outputType]) {
-                        for (const connection of connectionArray) {
-                            if (hasLoop(connection.node)) {
-                                return true;
-                            }
+                    const outputConnections = connections[outputType];
+                    for (const connection of outputConnections) {
+                        if (hasLoop(connection.node)) {
+                            return true;
                         }
                     }
                 }
@@ -131,11 +124,10 @@ export class WorkflowParser {
             const connections = workflow.connections[nodeName];
             if (connections) {
                 for (const outputType of Object.keys(connections)) {
-                    for (const connectionArray of connections[outputType]) {
-                        for (const connection of connectionArray) {
-                            const childDepth = calculateDepth(connection.node, new Set(visited));
-                            maxChildDepth = Math.max(maxChildDepth, childDepth);
-                        }
+                    const outputConnections = connections[outputType];
+                    for (const connection of outputConnections) {
+                        const childDepth = calculateDepth(connection.node, new Set(visited));
+                        maxChildDepth = Math.max(maxChildDepth, childDepth);
                     }
                 }
             }
@@ -145,10 +137,8 @@ export class WorkflowParser {
         const hasIncomingConnection = new Set();
         Object.values(workflow.connections).forEach(nodeConnections => {
             Object.values(nodeConnections).forEach(outputConnections => {
-                outputConnections.forEach(connectionArray => {
-                    connectionArray.forEach(connection => {
-                        hasIncomingConnection.add(connection.node);
-                    });
+                outputConnections.forEach(connection => {
+                    hasIncomingConnection.add(connection.node);
                 });
             });
         });
@@ -175,7 +165,7 @@ export class WorkflowParser {
         else
             complexity += 4;
         // Connection complexity
-        const avgConnectionsPerNode = connectionCount / nodeCount;
+        const avgConnectionsPerNode = nodeCount > 0 ? connectionCount / nodeCount : 0;
         if (avgConnectionsPerNode > 2)
             complexity += 1;
         if (avgConnectionsPerNode > 3)
@@ -214,47 +204,40 @@ export class WorkflowParser {
         return workflow.connections[nodeName] || {};
     }
     /**
-     * Get nodes that connect to a specific node
+     * Get all nodes that connect to a specific node's input
      */
     getIncomingConnections(workflow, targetNodeName) {
-        const incomingConnections = [];
-        Object.entries(workflow.connections).forEach(([sourceNodeName, nodeConnections]) => {
+        const incoming = [];
+        Object.entries(workflow.connections).forEach(([sourceNode, nodeConnections]) => {
             Object.entries(nodeConnections).forEach(([outputType, outputConnections]) => {
-                outputConnections.forEach((connectionArray, outputIndex) => {
-                    connectionArray.forEach(connection => {
-                        if (connection.node === targetNodeName) {
-                            incomingConnections.push({
-                                sourceNode: sourceNodeName,
-                                outputType,
-                                outputIndex,
-                                inputIndex: connection.index
-                            });
-                        }
-                    });
+                outputConnections.forEach((connection, outputIndex) => {
+                    if (connection.node === targetNodeName) {
+                        incoming.push({
+                            sourceNode,
+                            outputType,
+                            outputIndex, // This is the index in the array, might not match n8n's internal index
+                            inputIndex: connection.index
+                        });
+                    }
                 });
             });
         });
-        return incomingConnections;
+        return incoming;
     }
     /**
-     * Generate a workflow summary
+     * Generate a human-readable summary of the workflow
      */
     generateSummary(parsedWorkflow) {
-        const { workflow, metadata, validation } = parsedWorkflow;
-        const summary = [
-            `Workflow: ${workflow.name}`,
-            `Nodes: ${metadata.nodeCount}`,
-            `Connections: ${metadata.connectionCount}`,
-            `Node Types: ${metadata.nodeTypes.join(', ')}`,
-            `Max Depth: ${metadata.maxDepth}`,
-            `Has Loops: ${metadata.hasLoops ? 'Yes' : 'No'}`,
-            `Complexity: ${metadata.estimatedComplexity}/10`,
-            `Valid: ${validation.isValid ? 'Yes' : 'No'}`,
-        ];
-        if (!validation.isValid) {
-            summary.push(`Errors: ${validation.errors.length}`);
-            summary.push(`Warnings: ${validation.warnings.length}`);
-        }
-        return summary.join('\n');
+        const { workflow, metadata } = parsedWorkflow;
+        let summary = `Workflow Summary: "${workflow.name}" (ID: ${workflow.id})\n`;
+        summary += ` - Status: ${workflow.active ? 'Active' : 'Inactive'}\n`;
+        summary += ` - Nodes: ${metadata.nodeCount}\n`;
+        summary += ` - Connections: ${metadata.connectionCount}\n`;
+        summary += ` - Node Types: ${metadata.nodeTypes.join(', ')}\n`;
+        summary += ` - Complexity: ${metadata.estimatedComplexity}/10\n`;
+        summary += ` - Max Depth: ${metadata.maxDepth}\n`;
+        summary += ` - Contains Loops: ${metadata.hasLoops ? 'Yes' : 'No'}\n`;
+        return summary;
     }
 }
+//# sourceMappingURL=workflow-parser.js.map

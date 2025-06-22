@@ -5,8 +5,8 @@
  * providing comprehensive AI capabilities including OpenAI, LangChain, Vector Stores,
  * and AI Agents integration patterns.
  */
-import { N8nWorkflow, N8nNode } from '../types/n8n-workflow';
-import { IntegrationConfig, N8nLogger } from './integration-patterns';
+import { N8nWorkflow, N8nNode } from '../types/n8n-workflow.js';
+import { IntegrationConfig, N8nLogger } from './integration-patterns.js';
 /**
  * AI Integration Configuration
  */

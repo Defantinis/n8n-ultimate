@@ -1,0 +1,1 @@
+{"version":3,"file":"index.d.ts","sourceRoot":"","sources":["../../../src/dashboard/system-monitor/index.ts"],"names":[],"mappings":"AAAA;;;;;GAKG;AAEH,qBAAa,sBAAsB;IACjC,OAAO,CAAC,OAAO,CAAc;IAC7B,OAAO,CAAC,UAAU,CAAC,CAAS;gBAEhB,OAAO,EAAE,WAAW;IAMhC,OAAO,CAAC,MAAM;IAWd,OAAO,CAAC,eAAe;IAOvB,OAAO,CAAC,cAAc;IAMtB,OAAO,CAAC,aAAa;IAqBd,OAAO,IAAI,IAAI;CAGvB"}

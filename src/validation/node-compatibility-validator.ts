@@ -4,14 +4,13 @@
  */
 
 import {
-  N8NWorkflowSchema,
-  N8NNode,
-  N8NConnections,
+  N8nWorkflow,
+  N8nNode,
+  N8nConnections,
   ValidationResult,
-  N8N_CORE_NODES,
-  NODE_PARAMETER_SCHEMAS,
-  WorkflowSchemaUtils
-} from './n8n-workflow-schema';
+  ValidationError,
+  ValidationWarning
+} from '../types/n8n-workflow.js';
 
 /**
  * Node type categories for compatibility validation
@@ -52,6 +51,49 @@ export interface ConnectionCompatibilityInfo {
   compatible: boolean;
   reason?: string;
 }
+
+/**
+ * Common N8N Node Types
+ */
+export const N8N_CORE_NODES = {
+  // Core nodes
+  START: 'n8n-nodes-base.start',
+  MANUAL_TRIGGER: 'n8n-nodes-base.manualTrigger',
+  WEBHOOK: 'n8n-nodes-base.webhook',
+  CRON: 'n8n-nodes-base.cron',
+  
+  // Data manipulation
+  SET: 'n8n-nodes-base.set',
+  CODE: 'n8n-nodes-base.code',
+  FUNCTION: 'n8n-nodes-base.function',
+  FUNCTION_ITEM: 'n8n-nodes-base.functionItem',
+  
+  // Flow control
+  IF: 'n8n-nodes-base.if',
+  SWITCH: 'n8n-nodes-base.switch',
+  MERGE: 'n8n-nodes-base.merge',
+  SPLIT_IN_BATCHES: 'n8n-nodes-base.splitInBatches',
+  
+  // HTTP and API
+  HTTP_REQUEST: 'n8n-nodes-base.httpRequest',
+  
+  // Database
+  POSTGRES: 'n8n-nodes-base.postgres',
+  MYSQL: 'n8n-nodes-base.mySql',
+  MONGODB: 'n8n-nodes-base.mongoDb',
+  
+  // Cloud services
+  AWS_S3: 'n8n-nodes-base.awsS3',
+  GOOGLE_SHEETS: 'n8n-nodes-base.googleSheets',
+  
+  // Communication
+  EMAIL_SEND: 'n8n-nodes-base.emailSend',
+  SLACK: 'n8n-nodes-base.slack',
+  
+  // AI and ML
+  OPENAI: 'n8n-nodes-base.openAi',
+  ANTHROPIC: 'n8n-nodes-base.anthropic'
+} as const;
 
 /**
  * Node compatibility database
@@ -256,265 +298,192 @@ export class NodeCompatibilityValidator {
     customCompatibilityDB?: Record<string, NodeCompatibilityInfo>,
     customConnectionRules?: ConnectionCompatibilityInfo[]
   ) {
-    this.compatibilityDB = { ...NODE_COMPATIBILITY_DB, ...customCompatibilityDB };
-    this.connectionRules = [...CONNECTION_COMPATIBILITY_RULES, ...(customConnectionRules || [])];
+    this.compatibilityDB = customCompatibilityDB || NODE_COMPATIBILITY_DB;
+    this.connectionRules = customConnectionRules || CONNECTION_COMPATIBILITY_RULES;
   }
 
   /**
    * Validate all nodes in a workflow for compatibility
    */
-  validateWorkflowNodeCompatibility(workflow: N8NWorkflowSchema): ValidationResult[] {
-    const results: ValidationResult[] = [];
-
+  validateWorkflowNodeCompatibility(workflow: N8nWorkflow): ValidationResult {
+    const allErrors: ValidationError[] = [];
+    const allWarnings: ValidationWarning[] = [];
     for (const node of workflow.nodes) {
-      const nodeResults = this.validateNode(node, workflow);
-      results.push(...nodeResults);
+      const result = this.validateNode(node, workflow);
+      allErrors.push(...result.errors);
+      allWarnings.push(...result.warnings);
     }
-
-    return results;
+    return {
+        isValid: allErrors.length === 0,
+        errors: allErrors,
+        warnings: allWarnings
+    };
   }
 
   /**
-   * Validate a single node for compatibility
+   * Validate a single node's compatibility
    */
-  validateNode(node: N8NNode, workflow?: N8NWorkflowSchema): ValidationResult[] {
-    const results: ValidationResult[] = [];
+  validateNode(node: N8nNode, workflow?: N8nWorkflow): ValidationResult {
+    const errors: ValidationError[] = [];
+    const warnings: ValidationWarning[] = [];
 
-    // Check if node type is supported
-    const typeValidation = this.validateNodeType(node);
-    results.push(typeValidation);
-
-    if (!typeValidation.valid) {
-      return results; // Skip further validation if type is invalid
-    }
+    // Validate node type existence
+    const typeResult = this.validateNodeType(node);
+    errors.push(...typeResult.errors);
+    warnings.push(...typeResult.warnings);
 
     // Validate node version
-    const versionValidation = this.validateNodeVersion(node);
-    results.push(versionValidation);
+    const versionResult = this.validateNodeVersion(node);
+    errors.push(...versionResult.errors);
+    warnings.push(...versionResult.warnings);
 
     // Validate node parameters
-    const parameterValidation = this.validateNodeParameters(node);
-    results.push(parameterValidation);
+    const paramsResult = this.validateNodeParameters(node);
+    errors.push(...paramsResult.errors);
+    warnings.push(...paramsResult.warnings);
 
-    // Validate connections if workflow is provided
+    // Validate node connections if workflow is provided
     if (workflow) {
-      const connectionValidation = this.validateNodeConnections(node, workflow);
-      results.push(...connectionValidation);
+      const connResult = this.validateNodeConnections(node, workflow);
+      errors.push(...connResult.errors);
+      warnings.push(...connResult.warnings);
+    }
+    
+    // Check for deprecation
+    const deprecationResult = this.validateNodeDeprecation(node);
+    if (deprecationResult) {
+      warnings.push(...deprecationResult.warnings);
     }
 
-    // Check for deprecated nodes
-    const deprecationValidation = this.validateNodeDeprecation(node);
-    if (deprecationValidation) {
-      results.push(deprecationValidation);
-    }
-
-    return results.filter(result => result !== null);
+    return {
+      isValid: errors.length === 0,
+      errors,
+      warnings
+    };
   }
 
   /**
    * Validate node type compatibility
    */
-  private validateNodeType(node: N8NNode): ValidationResult {
+  private validateNodeType(node: N8nNode): ValidationResult {
+    const errors: ValidationError[] = [];
+
     if (!node.type || typeof node.type !== 'string') {
-      return {
-        valid: false,
-        message: `Node ${node.id} has invalid or missing type`,
+      errors.push({
+        type: 'node',
+        message: `Node ${node.id} has an invalid type`,
         nodeId: node.id,
         severity: 'error'
-      };
-    }
-
-    const compatibilityInfo = this.compatibilityDB[node.type];
-    if (!compatibilityInfo) {
-      return {
-        valid: false,
-        message: `Node type ${node.type} is not supported or recognized`,
+      });
+    } else if (!this.compatibilityDB[node.type]) {
+      errors.push({
+        type: 'node',
+        message: `Node type '${node.type}' is not supported or recognized`,
         nodeId: node.id,
-        severity: 'warning'
-      };
+        severity: 'error'
+      });
     }
 
-    return {
-      valid: true,
-      message: `Node type ${node.type} is supported`,
-      nodeId: node.id,
-      severity: 'info'
-    };
+    return { isValid: errors.length === 0, errors, warnings: [] };
   }
 
   /**
    * Validate node version compatibility
    */
-  private validateNodeVersion(node: N8NNode): ValidationResult {
+  private validateNodeVersion(node: N8nNode): ValidationResult {
+    const errors: ValidationError[] = [];
+    const warnings: ValidationWarning[] = [];
     const compatibilityInfo = this.compatibilityDB[node.type];
+
     if (!compatibilityInfo) {
-      return {
-        valid: true,
-        message: `Cannot validate version for unknown node type ${node.type}`,
-        nodeId: node.id,
-        severity: 'info'
-      };
+      return { isValid: true, errors, warnings }; // Type validation will handle this
     }
 
-    const nodeVersion = node.typeVersion || 1;
-
-    if (nodeVersion < compatibilityInfo.minTypeVersion) {
-      return {
-        valid: false,
-        message: `Node ${node.id} version ${nodeVersion} is below minimum supported version ${compatibilityInfo.minTypeVersion}`,
+    if (node.typeVersion < compatibilityInfo.minTypeVersion) {
+      errors.push({
+        type: 'node',
+        message: `Node type '${node.type}' version ${node.typeVersion} is outdated. Minimum required version is ${compatibilityInfo.minTypeVersion}`,
         nodeId: node.id,
         severity: 'error'
-      };
+      });
     }
 
-    if (nodeVersion > compatibilityInfo.maxTypeVersion) {
-      return {
-        valid: false,
-        message: `Node ${node.id} version ${nodeVersion} is above maximum supported version ${compatibilityInfo.maxTypeVersion}`,
+    if (node.typeVersion > compatibilityInfo.maxTypeVersion) {
+      warnings.push({
+        type: 'compatibility',
+        message: `Node type '${node.type}' version ${node.typeVersion} is newer than supported version ${compatibilityInfo.maxTypeVersion}. It may cause issues.`,
         nodeId: node.id,
-        severity: 'warning'
-      };
+      });
     }
 
-    return {
-      valid: true,
-      message: `Node version ${nodeVersion} is compatible`,
-      nodeId: node.id,
-      severity: 'info'
-    };
+    return { isValid: errors.length === 0, errors, warnings };
   }
 
   /**
    * Validate node parameters
    */
-  private validateNodeParameters(node: N8NNode): ValidationResult {
+  private validateNodeParameters(node: N8nNode): ValidationResult {
+    const errors: ValidationError[] = [];
+    const warnings: ValidationWarning[] = [];
     const compatibilityInfo = this.compatibilityDB[node.type];
     if (!compatibilityInfo) {
-      return {
-        valid: true,
-        message: `Cannot validate parameters for unknown node type ${node.type}`,
-        nodeId: node.id,
-        severity: 'info'
-      };
+      return { isValid: true, errors, warnings };
     }
 
     // Check required parameters
     for (const requiredParam of compatibilityInfo.requiredParameters) {
       if (!node.parameters || !(requiredParam in node.parameters)) {
-        return {
-          valid: false,
+        errors.push({
+          type: 'parameter',
           message: `Node ${node.id} is missing required parameter: ${requiredParam}`,
           nodeId: node.id,
           severity: 'error'
-        };
+        });
       }
     }
 
-    // Use existing parameter validation from schema utils
-    const schemaValidation = WorkflowSchemaUtils.validateNodeParameters(
-      node.type,
-      node.parameters || {}
-    );
-
     return {
-      valid: schemaValidation.valid,
-      message: schemaValidation.message || `Parameters validation ${schemaValidation.valid ? 'passed' : 'failed'}`,
-      nodeId: node.id,
-      severity: schemaValidation.valid ? 'info' : 'error'
+      isValid: errors.length === 0,
+      errors,
+      warnings
     };
   }
 
   /**
    * Validate node connections
    */
-  private validateNodeConnections(node: N8NNode, workflow: N8NWorkflowSchema): ValidationResult[] {
-    const results: ValidationResult[] = [];
+  private validateNodeConnections(node: N8nNode, workflow: N8nWorkflow): ValidationResult {
+    const errors: ValidationError[] = [];
+    const warnings: ValidationWarning[] = [];
     const compatibilityInfo = this.compatibilityDB[node.type];
 
     if (!compatibilityInfo) {
-      return [{
-        valid: true,
-        message: `Cannot validate connections for unknown node type ${node.type}`,
-        nodeId: node.id,
-        severity: 'info'
-      }];
+      return { isValid: true, errors, warnings };
     }
 
-    // Count input connections
-    let inputConnectionCount = 0;
-    for (const [sourceId, outputs] of Object.entries(workflow.connections)) {
-      for (const outputType of Object.values(outputs)) {
-        for (const connection of outputType) {
-          if (connection.node === node.id) {
-            inputConnectionCount++;
-          }
-        }
-      }
-    }
-
-    // Validate input connection count
-    if (inputConnectionCount > compatibilityInfo.maxInputConnections) {
-      results.push({
-        valid: false,
-        message: `Node ${node.id} has ${inputConnectionCount} input connections, but maximum allowed is ${compatibilityInfo.maxInputConnections}`,
+    // Validate input connections
+    const inputConnections = this.countInputConnections(node.id, workflow);
+    if (inputConnections > compatibilityInfo.maxInputConnections) {
+      errors.push({
+        type: 'connection',
+        message: `Node ${node.id} has too many input connections. Max: ${compatibilityInfo.maxInputConnections}, found: ${inputConnections}`,
         nodeId: node.id,
         severity: 'error'
       });
     }
 
-    // Count output connections
-    let outputConnectionCount = 0;
-    if (workflow.connections[node.id]) {
-      for (const outputs of Object.values(workflow.connections[node.id])) {
-        outputConnectionCount += outputs.length;
-      }
-    }
-
-    // Validate output connection count
-    if (outputConnectionCount > compatibilityInfo.maxOutputConnections) {
-      results.push({
-        valid: false,
-        message: `Node ${node.id} has ${outputConnectionCount} output connections, but maximum allowed is ${compatibilityInfo.maxOutputConnections}`,
+    // Validate output connections
+    const outputConnections = this.countOutputConnections(node.id, workflow);
+    if (outputConnections > compatibilityInfo.maxOutputConnections) {
+      errors.push({
+        type: 'connection',
+        message: `Node ${node.id} has too many output connections. Max: ${compatibilityInfo.maxOutputConnections}, found: ${outputConnections}`,
         nodeId: node.id,
         severity: 'error'
       });
     }
 
-    // Validate specific connection types
-    if (workflow.connections[node.id]) {
-      for (const [outputType, connections] of Object.entries(workflow.connections[node.id])) {
-        if (!compatibilityInfo.supportedOutputTypes.includes(outputType)) {
-          results.push({
-            valid: false,
-            message: `Node ${node.id} does not support output type: ${outputType}`,
-            nodeId: node.id,
-            severity: 'error'
-          });
-        }
-
-        // Validate each connection
-        for (const connection of connections) {
-          const connectionValidation = this.validateConnection(
-            node.type,
-            workflow.nodes.find(n => n.id === connection.node)?.type || 'unknown',
-            outputType,
-            connection.type
-          );
-
-          if (!connectionValidation.compatible) {
-            results.push({
-              valid: false,
-              message: `Invalid connection from ${node.id} to ${connection.node}: ${connectionValidation.reason}`,
-              nodeId: node.id,
-              connectionId: connection.node,
-              severity: 'error'
-            });
-          }
-        }
-      }
-    }
-
-    return results;
+    return { isValid: errors.length === 0, errors, warnings };
   }
 
   /**
@@ -589,21 +558,22 @@ export class NodeCompatibilityValidator {
   /**
    * Check for deprecated nodes
    */
-  private validateNodeDeprecation(node: N8NNode): ValidationResult | null {
+  private validateNodeDeprecation(node: N8nNode): ValidationResult | null {
     const compatibilityInfo = this.compatibilityDB[node.type];
     if (!compatibilityInfo || !compatibilityInfo.deprecatedInVersion) {
       return null;
     }
 
+    const warning: ValidationWarning = {
+        type: 'compatibility',
+        message: `Node type '${node.type}' is deprecated since version ${compatibilityInfo.deprecatedInVersion}. Consider replacing with '${compatibilityInfo.replacedBy}'.`,
+        nodeId: node.id
+    };
+    
     return {
-      valid: true, // Deprecated but still functional
-      message: `Node ${node.id} uses deprecated node type ${node.type}. ${
-        compatibilityInfo.replacedBy 
-          ? `Consider using ${compatibilityInfo.replacedBy} instead.`
-          : 'Consider updating to a newer node type.'
-      }`,
-      nodeId: node.id,
-      severity: 'warning'
+      isValid: true,
+      errors: [],
+      warnings: [warning]
     };
   }
 
@@ -645,9 +615,9 @@ export class NodeCompatibilityValidator {
   }
 
   /**
-   * Generate compatibility report for a workflow
+   * Generate a compatibility report for the workflow
    */
-  generateCompatibilityReport(workflow: N8NWorkflowSchema): {
+  generateCompatibilityReport(workflow: N8nWorkflow): {
     summary: {
       totalNodes: number;
       compatibleNodes: number;
@@ -658,57 +628,59 @@ export class NodeCompatibilityValidator {
     details: ValidationResult[];
     recommendations: string[];
   } {
-    const results = this.validateWorkflowNodeCompatibility(workflow);
-    
+    const details = workflow.nodes.map(node => this.validateNode(node, workflow));
+    const errorsCount = details.reduce((acc, r) => acc + r.errors.length, 0);
+    const warningsCount = details.reduce((acc, r) => acc + r.warnings.length, 0);
+
     const summary = {
       totalNodes: workflow.nodes.length,
-      compatibleNodes: 0,
-      incompatibleNodes: 0,
-      warnings: 0,
-      errors: 0
+      compatibleNodes: details.filter(r => r.isValid).length,
+      incompatibleNodes: details.filter(r => !r.isValid).length,
+      warnings: warningsCount,
+      errors: errorsCount
     };
 
+    const recommendations = this.generateRecommendations(details);
+
+    return { summary, details, recommendations };
+  }
+
+  private generateRecommendations(results: ValidationResult[]): string[] {
     const recommendations: string[] = [];
-
-    // Group results by node
-    const nodeResults = new Map<string, ValidationResult[]>();
     for (const result of results) {
-      if (result.nodeId) {
-        if (!nodeResults.has(result.nodeId)) {
-          nodeResults.set(result.nodeId, []);
+        if (!result.isValid) {
+            for(const error of result.errors) {
+                if (error.message.includes('deprecated')) {
+                    recommendations.push(`Replace deprecated node ${error.nodeId}`);
+                }
+            }
         }
-        nodeResults.get(result.nodeId)!.push(result);
-      }
     }
+    return recommendations;
+  }
 
-    // Analyze results
-    for (const [nodeId, nodeResultsArray] of Array.from(nodeResults.entries())) {
-      const hasErrors = nodeResultsArray.some(r => r.severity === 'error' && !r.valid);
-      const hasWarnings = nodeResultsArray.some(r => r.severity === 'warning');
-
-      if (hasErrors) {
-        summary.incompatibleNodes++;
-        summary.errors += nodeResultsArray.filter(r => r.severity === 'error' && !r.valid).length;
-      } else {
-        summary.compatibleNodes++;
-      }
-
-      if (hasWarnings) {
-        summary.warnings += nodeResultsArray.filter(r => r.severity === 'warning').length;
-      }
-
-      // Generate recommendations
-      const deprecatedResults = nodeResultsArray.filter(r => r.message?.includes('deprecated'));
-      for (const deprecatedResult of deprecatedResults) {
-        recommendations.push(deprecatedResult.message || '');
-      }
+  private countInputConnections(nodeId: string, workflow: N8nWorkflow): number {
+    let count = 0;
+    for (const sourceNode of Object.values(workflow.connections)) {
+        for (const output of Object.values(sourceNode)) {
+            for (const connection of output) {
+                if (connection.node === nodeId) {
+                    count++;
+                }
+            }
+        }
     }
+    return count;
+  }
 
-    return {
-      summary,
-      details: results,
-      recommendations: Array.from(new Set(recommendations)) // Remove duplicates
-    };
+  private countOutputConnections(nodeId: string, workflow: N8nWorkflow): number {
+    let count = 0;
+    if (workflow.connections[nodeId]) {
+        for (const output of Object.values(workflow.connections[nodeId])) {
+            count += output.length;
+        }
+    }
+    return count;
   }
 }
 

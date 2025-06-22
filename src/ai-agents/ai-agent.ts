@@ -1,7 +1,24 @@
-import { WorkflowRequirements, SimplificationSuggestion } from '../generators/workflow-generator.js';
 import { WorkflowPlan, NodeSpecification, FlowConnection } from '../types/n8n-workflow.js';
 import { N8nWorkflow, N8nNode } from '../types/n8n-workflow.js';
 import { ollamaCacheManager } from '../performance/ollama-cache-manager.js';
+
+export interface WorkflowRequirements {
+  description: string;
+  type: 'automation' | 'data-processing' | 'integration' | 'custom' | 'api-integration';
+  inputs?: Array<{ name: string; type: string; description: string }>;
+  outputs?: Array<{ name: string; type: string; description: string }>;
+  steps?: string[];
+  constraints?: Record<string, any>;
+  tags?: string[];
+}
+
+export interface SimplificationSuggestion {
+  type: 'split-node' | 'merge-nodes' | 'simplify-parameters' | 'replace-node';
+  nodeId: string;
+  description: string;
+  parameters?: Record<string, any>;
+  newNode?: NodeSpecification;
+}
 
 /**
  * AI Agent that uses Ollama to analyze requirements and plan workflows

@@ -4,12 +4,14 @@
  */
 
 import {
-  N8NWorkflowSchema,
-  N8NNode,
-  ValidationResult
-} from './n8n-workflow-schema';
+  N8nWorkflow,
+  N8nNode,
+  ValidationResult,
+  ValidationError,
+  ValidationWarning
+} from '../types/n8n-workflow.js';
 
-import { ConnectionValidator } from './connection-validator';
+import { ConnectionValidator } from './connection-validator.js';
 
 /**
  * Performance metrics for individual nodes
@@ -261,31 +263,36 @@ export class PerformanceValidator {
   /**
    * Validate workflow performance
    */
-  validatePerformance(workflow: N8NWorkflowSchema): ValidationResult[] {
-    const results: ValidationResult[] = [];
+  validateWorkflowPerformance(workflow: N8nWorkflow): ValidationResult {
+    const allErrors: ValidationError[] = [];
+    const allWarnings: ValidationWarning[] = [];
 
-    // Validate individual node performance
-    results.push(...this.validateNodePerformance(workflow));
+    const nodeResults = this.validateNodePerformance(workflow);
+    allErrors.push(...nodeResults.errors);
+    allWarnings.push(...nodeResults.warnings);
+    
+    const resourceResults = this.validateResourceUsage(workflow);
+    allErrors.push(...resourceResults.errors);
+    allWarnings.push(...resourceResults.warnings);
 
-    // Validate workflow-level performance
-    results.push(...this.validateWorkflowPerformance(workflow));
+    const scalabilityResults = this.validateScalability(workflow);
+    allErrors.push(...scalabilityResults.errors);
+    allWarnings.push(...scalabilityResults.warnings);
 
-    // Validate resource usage
-    results.push(...this.validateResourceUsage(workflow));
-
-    // Validate scalability
-    results.push(...this.validateScalability(workflow));
-
-    return results;
+    return {
+      isValid: allErrors.length === 0,
+      errors: allErrors,
+      warnings: allWarnings,
+    };
   }
 
   /**
    * Generate comprehensive performance report
    */
-  generatePerformanceReport(workflow: N8NWorkflowSchema): PerformanceValidationReport {
+  generatePerformanceReport(workflow: N8nWorkflow): PerformanceValidationReport {
     const nodeMetrics = this.analyzeNodePerformance(workflow);
     const workflowMetrics = this.analyzeWorkflowPerformance(workflow, nodeMetrics);
-    const validationResults = this.validatePerformance(workflow);
+    const validationResult = this.validateWorkflowPerformance(workflow);
 
     // Calculate overall score
     const overallScore = this.calculateOverallScore(workflowMetrics, nodeMetrics);
@@ -293,12 +300,12 @@ export class PerformanceValidator {
     const passesThresholds = this.checkThresholds(workflowMetrics);
 
     // Count issues
-    const criticalIssues = validationResults.filter(r => r.severity === 'error' && !r.valid).length;
-    const warnings = validationResults.filter(r => r.severity === 'warning').length;
+    const criticalIssues = validationResult.errors.length;
+    const warnings = validationResult.warnings.length;
     const optimizationOpportunities = this.countOptimizationOpportunities(nodeMetrics);
 
     // Generate recommendations
-    const recommendations = this.generateRecommendations(workflowMetrics, nodeMetrics, validationResults);
+    const recommendations = this.generateRecommendations(workflowMetrics, nodeMetrics, validationResult);
 
     return {
       summary: {
@@ -311,7 +318,7 @@ export class PerformanceValidator {
       },
       workflowMetrics,
       nodeMetrics,
-      validationResults,
+      validationResults: [validationResult],
       recommendations
     };
   }
@@ -319,193 +326,82 @@ export class PerformanceValidator {
   /**
    * Validate individual node performance
    */
-  private validateNodePerformance(workflow: N8NWorkflowSchema): ValidationResult[] {
-    const results: ValidationResult[] = [];
+  private validateNodePerformance(workflow: N8nWorkflow): ValidationResult {
+    const errors: ValidationError[] = [];
+    const warnings: ValidationWarning[] = [];
     const nodeMetrics = this.analyzeNodePerformance(workflow);
 
-    for (const metric of nodeMetrics) {
-      // Check execution time threshold
-      if (metric.estimatedExecutionTime > this.thresholds.warningThresholds.executionTime) {
-        results.push({
-          valid: metric.estimatedExecutionTime <= this.thresholds.maxExecutionTime,
-          message: `Node ${metric.nodeId} (${metric.nodeType}) has high estimated execution time: ${metric.estimatedExecutionTime}ms`,
-          nodeId: metric.nodeId,
-          severity: metric.estimatedExecutionTime > this.thresholds.maxExecutionTime ? 'error' : 'warning',
-          rule: 'node_execution_time'
+    for (const metrics of nodeMetrics) {
+      if (metrics.bottleneckRisk > 0.8) {
+        errors.push({
+          type: 'performance',
+          message: `High bottleneck risk (${(metrics.bottleneckRisk * 100).toFixed(0)}%) for node ${metrics.nodeId}`,
+          nodeId: metrics.nodeId,
+          severity: 'error',
         });
       }
 
-      // Check memory usage threshold
-      if (metric.estimatedMemoryUsage > this.thresholds.warningThresholds.memoryUsage) {
-        results.push({
-          valid: metric.estimatedMemoryUsage <= this.thresholds.maxMemoryUsage,
-          message: `Node ${metric.nodeId} (${metric.nodeType}) has high estimated memory usage: ${metric.estimatedMemoryUsage}MB`,
-          nodeId: metric.nodeId,
-          severity: metric.estimatedMemoryUsage > this.thresholds.maxMemoryUsage ? 'error' : 'warning',
-          rule: 'node_memory_usage'
-        });
-      }
-
-      // Check CPU usage threshold
-      if (metric.estimatedCpuUsage > this.thresholds.warningThresholds.cpuUsage) {
-        results.push({
-          valid: metric.estimatedCpuUsage <= this.thresholds.maxCpuUsage,
-          message: `Node ${metric.nodeId} (${metric.nodeType}) has high estimated CPU usage: ${metric.estimatedCpuUsage}%`,
-          nodeId: metric.nodeId,
-          severity: metric.estimatedCpuUsage > this.thresholds.maxCpuUsage ? 'error' : 'warning',
-          rule: 'node_cpu_usage'
-        });
-      }
-
-      // Check node complexity
-      if (metric.complexity > this.thresholds.maxNodeComplexity) {
-        results.push({
-          valid: false,
-          message: `Node ${metric.nodeId} (${metric.nodeType}) has excessive complexity: ${metric.complexity}/10`,
-          nodeId: metric.nodeId,
-          severity: 'warning',
-          rule: 'node_complexity'
-        });
-      }
-
-      // Check bottleneck risk
-      if (metric.bottleneckRisk > 0.7) {
-        results.push({
-          valid: true,
-          message: `Node ${metric.nodeId} (${metric.nodeType}) has high bottleneck risk: ${(metric.bottleneckRisk * 100).toFixed(1)}%`,
-          nodeId: metric.nodeId,
-          severity: 'warning',
-          rule: 'bottleneck_risk'
+      if (metrics.complexity > this.thresholds.maxNodeComplexity) {
+        warnings.push({
+          type: 'performance',
+          message: `High complexity (${metrics.complexity}) for node ${metrics.nodeId}`,
+          nodeId: metrics.nodeId,
         });
       }
     }
 
-    return results;
-  }
-
-  /**
-   * Validate workflow-level performance
-   */
-  private validateWorkflowPerformance(workflow: N8NWorkflowSchema): ValidationResult[] {
-    const results: ValidationResult[] = [];
-    const nodeMetrics = this.analyzeNodePerformance(workflow);
-    const workflowMetrics = this.analyzeWorkflowPerformance(workflow, nodeMetrics);
-
-    // Check total execution time
-    if (workflowMetrics.totalEstimatedExecutionTime > this.thresholds.maxExecutionTime) {
-      results.push({
-        valid: false,
-        message: `Workflow exceeds maximum execution time: ${workflowMetrics.totalEstimatedExecutionTime}ms > ${this.thresholds.maxExecutionTime}ms`,
-        severity: 'error',
-        rule: 'workflow_execution_time'
-      });
-    }
-
-    // Check total memory usage
-    if (workflowMetrics.totalEstimatedMemoryUsage > this.thresholds.maxMemoryUsage) {
-      results.push({
-        valid: false,
-        message: `Workflow exceeds maximum memory usage: ${workflowMetrics.totalEstimatedMemoryUsage}MB > ${this.thresholds.maxMemoryUsage}MB`,
-        severity: 'error',
-        rule: 'workflow_memory_usage'
-      });
-    }
-
-    // Check resource efficiency
-    if (workflowMetrics.resourceEfficiency < this.thresholds.minResourceEfficiency) {
-      results.push({
-        valid: false,
-        message: `Workflow has low resource efficiency: ${(workflowMetrics.resourceEfficiency * 100).toFixed(1)}% < ${(this.thresholds.minResourceEfficiency * 100).toFixed(1)}%`,
-        severity: 'warning',
-        rule: 'resource_efficiency'
-      });
-    }
-
-    // Check scalability score
-    if (workflowMetrics.scalabilityScore < this.thresholds.minScalabilityScore) {
-      results.push({
-        valid: false,
-        message: `Workflow has low scalability score: ${(workflowMetrics.scalabilityScore * 100).toFixed(1)}% < ${(this.thresholds.minScalabilityScore * 100).toFixed(1)}%`,
-        severity: 'warning',
-        rule: 'scalability_score'
-      });
-    }
-
-    return results;
+    return { isValid: errors.length === 0, errors, warnings };
   }
 
   /**
    * Validate resource usage patterns
    */
-  private validateResourceUsage(workflow: N8NWorkflowSchema): ValidationResult[] {
-    const results: ValidationResult[] = [];
-    const nodeMetrics = this.analyzeNodePerformance(workflow);
+  private validateResourceUsage(workflow: N8nWorkflow): ValidationResult {
+    const errors: ValidationError[] = [];
+    const warnings: ValidationWarning[] = [];
+    const workflowMetrics = this.analyzeWorkflowPerformance(workflow, this.analyzeNodePerformance(workflow));
 
-    // Check for resource-intensive node clusters
-    const resourceIntensiveNodes = nodeMetrics.filter(m => m.resourceIntensity === 'high' || m.resourceIntensity === 'critical');
-    if (resourceIntensiveNodes.length > 3) {
-      results.push({
-        valid: true,
-        message: `Workflow contains ${resourceIntensiveNodes.length} resource-intensive nodes, consider optimization`,
-        severity: 'warning',
-        rule: 'resource_intensive_nodes'
+    if (workflowMetrics.totalEstimatedExecutionTime > this.thresholds.maxExecutionTime) {
+      errors.push({
+        type: 'performance',
+        message: `Estimated execution time exceeds maximum of ${this.thresholds.maxExecutionTime}ms`,
+        severity: 'error',
       });
     }
 
-    // Check for memory usage spikes
-    const highMemoryNodes = nodeMetrics.filter(m => m.estimatedMemoryUsage > 50);
-    if (highMemoryNodes.length > 0) {
-      results.push({
-        valid: true,
-        message: `${highMemoryNodes.length} nodes have high memory usage, monitor for memory spikes`,
-        severity: 'info',
-        rule: 'memory_usage_pattern'
+    if (workflowMetrics.totalEstimatedMemoryUsage > this.thresholds.maxMemoryUsage) {
+      errors.push({
+        type: 'performance',
+        message: `Estimated memory usage exceeds maximum of ${this.thresholds.maxMemoryUsage}MB`,
+        severity: 'error',
       });
     }
 
-    return results;
+    return { isValid: errors.length === 0, errors, warnings };
   }
 
   /**
    * Validate scalability characteristics
    */
-  private validateScalability(workflow: N8NWorkflowSchema): ValidationResult[] {
-    const results: ValidationResult[] = [];
-    const nodeMetrics = this.analyzeNodePerformance(workflow);
-    const workflowMetrics = this.analyzeWorkflowPerformance(workflow, nodeMetrics);
+  private validateScalability(workflow: N8nWorkflow): ValidationResult {
+    const errors: ValidationError[] = [];
+    const warnings: ValidationWarning[] = [];
+    const workflowMetrics = this.analyzeWorkflowPerformance(workflow, this.analyzeNodePerformance(workflow));
 
-    // Check parallel execution potential
-    if (workflowMetrics.parallelExecutionPotential < 0.3 && workflow.nodes.length > 5) {
-      results.push({
-        valid: true,
-        message: `Low parallel execution potential (${(workflowMetrics.parallelExecutionPotential * 100).toFixed(1)}%), consider workflow restructuring`,
-        severity: 'info',
-        rule: 'parallel_execution_potential'
+    if (workflowMetrics.scalabilityScore < this.thresholds.minScalabilityScore) {
+      warnings.push({
+        type: 'performance',
+        message: `Low scalability score (${workflowMetrics.scalabilityScore.toFixed(2)}). Consider parallel processing or batching.`,
       });
     }
 
-    // Check for linear scaling bottlenecks
-    const highScalingNodes = nodeMetrics.filter(m => {
-      const perfData = NODE_PERFORMANCE_DB[m.nodeType];
-      return perfData && perfData.scalingFactor > 2;
-    });
-
-    if (highScalingNodes.length > 0) {
-      results.push({
-        valid: true,
-        message: `${highScalingNodes.length} nodes have poor scaling characteristics, may become bottlenecks with larger data volumes`,
-        severity: 'warning',
-        rule: 'scaling_bottlenecks'
-      });
-    }
-
-    return results;
+    return { isValid: errors.length === 0, errors, warnings };
   }
 
   /**
    * Analyze individual node performance
    */
-  private analyzeNodePerformance(workflow: N8NWorkflowSchema): NodePerformanceMetrics[] {
+  private analyzeNodePerformance(workflow: N8nWorkflow): NodePerformanceMetrics[] {
     return workflow.nodes.map(node => {
       const perfData = NODE_PERFORMANCE_DB[node.type] || this.getDefaultNodePerformance();
       
@@ -542,7 +438,7 @@ export class PerformanceValidator {
    * Analyze workflow-level performance
    */
   private analyzeWorkflowPerformance(
-    workflow: N8NWorkflowSchema, 
+    workflow: N8nWorkflow, 
     nodeMetrics: NodePerformanceMetrics[]
   ): WorkflowPerformanceMetrics {
     const dataFlowAnalysis = this.connectionValidator.analyzeDataFlow(workflow);
@@ -594,7 +490,7 @@ export class PerformanceValidator {
     };
   }
 
-  private estimateDataVolumeMultiplier(node: N8NNode): number {
+  private estimateDataVolumeMultiplier(node: N8nNode): number {
     // Estimate based on node parameters and type
     let multiplier = 1;
 
@@ -616,7 +512,7 @@ export class PerformanceValidator {
     return Math.max(1, multiplier);
   }
 
-  private calculateNodeComplexity(node: N8NNode): number {
+  private calculateNodeComplexity(node: N8nNode): number {
     let complexity = 1;
 
     // Base complexity by node type
@@ -663,7 +559,7 @@ export class PerformanceValidator {
     return Math.min((complexityFactor + scalingFactor + tipsFactor) / 3, 1);
   }
 
-  private generateNodeWarnings(node: N8NNode, perfData: any, executionTime: number, memoryUsage: number): string[] {
+  private generateNodeWarnings(node: N8nNode, perfData: any, executionTime: number, memoryUsage: number): string[] {
     const warnings: string[] = [];
 
     if (executionTime > 5000) {
@@ -685,7 +581,7 @@ export class PerformanceValidator {
     return warnings;
   }
 
-  private calculateCriticalPath(workflow: N8NWorkflowSchema, nodeMetrics: NodePerformanceMetrics[]): string[] {
+  private calculateCriticalPath(workflow: N8nWorkflow, nodeMetrics: NodePerformanceMetrics[]): string[] {
     // Simple critical path calculation - find longest execution path
     const dataFlowAnalysis = this.connectionValidator.analyzeDataFlow(workflow);
     const paths = dataFlowAnalysis.connectionPaths;
@@ -715,7 +611,7 @@ export class PerformanceValidator {
     }, 0);
   }
 
-  private calculateMaxConcurrentNodes(workflow: N8NWorkflowSchema): number {
+  private calculateMaxConcurrentNodes(workflow: N8nWorkflow): number {
     // Calculate maximum nodes that can execute concurrently
     const dataFlowAnalysis = this.connectionValidator.analyzeDataFlow(workflow);
     
@@ -737,7 +633,7 @@ export class PerformanceValidator {
     return Math.max(...Object.values(depthLevels).map(nodes => nodes.length));
   }
 
-  private calculateNodeDepth(workflow: N8NWorkflowSchema, nodeId: string): number {
+  private calculateNodeDepth(workflow: N8nWorkflow, nodeId: string): number {
     // Calculate depth from entry points (simplified BFS)
     const visited = new Set<string>();
     const queue: Array<{ nodeId: string; depth: number }> = [];
@@ -774,7 +670,7 @@ export class PerformanceValidator {
     return 0;
   }
 
-  private calculateParallelExecutionPotential(workflow: N8NWorkflowSchema): number {
+  private calculateParallelExecutionPotential(workflow: N8nWorkflow): number {
     const totalNodes = workflow.nodes.length;
     const maxConcurrent = this.calculateMaxConcurrentNodes(workflow);
     
@@ -792,7 +688,7 @@ export class PerformanceValidator {
     return (avgComplexity / 10 + timeEfficiency) / 2;
   }
 
-  private calculateScalabilityScore(workflow: N8NWorkflowSchema, nodeMetrics: NodePerformanceMetrics[]): number {
+  private calculateScalabilityScore(workflow: N8nWorkflow, nodeMetrics: NodePerformanceMetrics[]): number {
     const parallelPotential = this.calculateParallelExecutionPotential(workflow);
     const avgScalingFactor = nodeMetrics.reduce((sum, metric) => {
       const perfData = NODE_PERFORMANCE_DB[metric.nodeType];
@@ -806,14 +702,12 @@ export class PerformanceValidator {
   }
 
   private identifyBottlenecks(nodeMetrics: NodePerformanceMetrics[]): string[] {
-    return nodeMetrics
-      .filter(metric => metric.bottleneckRisk > 0.6 || metric.estimatedExecutionTime > 10000)
-      .map(metric => `${metric.nodeId} (${metric.nodeType}): ${metric.bottleneckRisk > 0.6 ? 'High bottleneck risk' : 'Long execution time'}`);
+    return nodeMetrics.filter(m => m.bottleneckRisk > 0.7).map(m => m.nodeId);
   }
 
-  private identifyOptimizationOpportunities(workflow: N8NWorkflowSchema, nodeMetrics: NodePerformanceMetrics[]): string[] {
+  private identifyOptimizationOpportunities(workflow: N8nWorkflow, nodeMetrics: NodePerformanceMetrics[]): string[] {
     const opportunities: string[] = [];
-
+    
     // High optimization potential nodes
     const optimizableNodes = nodeMetrics.filter(m => m.optimizationPotential > 0.6);
     if (optimizableNodes.length > 0) {
@@ -853,51 +747,52 @@ export class PerformanceValidator {
   }
 
   private checkThresholds(workflowMetrics: WorkflowPerformanceMetrics): boolean {
-    return workflowMetrics.totalEstimatedExecutionTime <= this.thresholds.maxExecutionTime &&
-           workflowMetrics.totalEstimatedMemoryUsage <= this.thresholds.maxMemoryUsage &&
-           workflowMetrics.resourceEfficiency >= this.thresholds.minResourceEfficiency &&
-           workflowMetrics.scalabilityScore >= this.thresholds.minScalabilityScore;
+    return (
+      workflowMetrics.totalEstimatedExecutionTime <= this.thresholds.maxExecutionTime &&
+      workflowMetrics.totalEstimatedMemoryUsage <= this.thresholds.maxMemoryUsage
+    );
   }
 
   private countOptimizationOpportunities(nodeMetrics: NodePerformanceMetrics[]): number {
-    return nodeMetrics.filter(m => m.optimizationPotential > 0.5).length;
+    return nodeMetrics.reduce((acc, m) => acc + m.recommendations.length, 0);
   }
 
   private generateRecommendations(
     workflowMetrics: WorkflowPerformanceMetrics,
     nodeMetrics: NodePerformanceMetrics[],
-    validationResults: ValidationResult[]
+    validationResult: ValidationResult
   ): { immediate: string[]; shortTerm: string[]; longTerm: string[] } {
-    const immediate: string[] = [];
-    const shortTerm: string[] = [];
-    const longTerm: string[] = [];
+    const recommendations = {
+      immediate: [] as string[],
+      shortTerm: [] as string[],
+      longTerm: [] as string[]
+    };
 
-    // Immediate recommendations (critical issues)
-    const criticalNodes = nodeMetrics.filter(m => m.resourceIntensity === 'critical' || m.bottleneckRisk > 0.8);
-    for (const node of criticalNodes) {
-      immediate.push(`Optimize critical node ${node.nodeId} (${node.nodeType})`);
+    // Based on validation errors
+    for (const error of validationResult.errors) {
+      if (error.nodeId) {
+        recommendations.immediate.push(`Address performance error on node ${error.nodeId}: ${error.message}`);
+      } else {
+        recommendations.immediate.push(`Address workflow-level performance error: ${error.message}`);
+      }
     }
 
-    // Short-term recommendations
-    if (workflowMetrics.resourceEfficiency < 0.7) {
-      shortTerm.push('Improve resource efficiency by optimizing node configurations');
+    // Based on bottlenecks
+    for (const bottleneck of workflowMetrics.bottlenecks) {
+      recommendations.immediate.push(`Address bottleneck at node ${bottleneck}`);
+    }
+
+    // Based on optimization opportunities
+    for (const opportunity of workflowMetrics.optimizationOpportunities) {
+      recommendations.shortTerm.push(opportunity);
     }
     
-    if (workflowMetrics.parallelExecutionPotential < 0.4) {
-      shortTerm.push('Restructure workflow to enable better parallel execution');
+    // General long-term recommendations
+    if (workflowMetrics.scalabilityScore < 0.7) {
+        recommendations.longTerm.push("Review overall workflow architecture for better scalability.");
     }
 
-    // Long-term recommendations
-    if (workflowMetrics.scalabilityScore < 0.6) {
-      longTerm.push('Consider architectural changes for better scalability');
-    }
-    
-    const highOptimizationNodes = nodeMetrics.filter(m => m.optimizationPotential > 0.7);
-    if (highOptimizationNodes.length > 2) {
-      longTerm.push('Implement comprehensive node optimization strategy');
-    }
-
-    return { immediate, shortTerm, longTerm };
+    return recommendations;
   }
 
   /**
@@ -911,6 +806,6 @@ export class PerformanceValidator {
    * Get current performance thresholds
    */
   getThresholds(): PerformanceThresholds {
-    return { ...this.thresholds };
+    return this.thresholds;
   }
 } 

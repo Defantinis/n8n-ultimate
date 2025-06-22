@@ -368,3 +368,4 @@ export class N8nWorkflowSchemaValidator {
 // Export validation utilities
 export const validateN8nWorkflow = N8nWorkflowSchemaValidator.validateWorkflow;
 export const N8N_SCHEMA_VERSION = '1.0.0';
+//# sourceMappingURL=n8n-workflow-schema.js.map

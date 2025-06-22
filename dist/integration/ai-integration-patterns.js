@@ -5,7 +5,7 @@
  * providing comprehensive AI capabilities including OpenAI, LangChain, Vector Stores,
  * and AI Agents integration patterns.
  */
-import { ConsoleLogger } from './integration-patterns';
+import { ConsoleLogger } from './integration-patterns.js';
 /**
  * Default AI integration configuration
  */
@@ -239,11 +239,11 @@ export class AIWorkflowPatternsClass {
             name,
             nodes,
             connections: {
-                'start': {
-                    main: [[{ node: vectorStoreNode.id, type: 'main', index: 0 }]]
+                'Start': {
+                    main: [{ node: vectorStoreNode.id, type: 'main', index: 0 }]
                 },
-                [vectorStoreNode.id]: {
-                    main: [[{ node: aiChatNode.id, type: 'main', index: 0 }]]
+                [vectorStoreNode.name]: {
+                    main: [{ node: aiChatNode.id, type: 'main', index: 0 }]
                 }
             },
             active: false,
@@ -305,12 +305,10 @@ export class AIWorkflowPatternsClass {
             name,
             nodes,
             connections: {
-                'webhook': {
-                    main: [[{ node: agentNode.id, type: 'main', index: 0 }]]
+                'Start': {
+                    main: [{ node: agentNode.id, type: 'main', index: 0 }]
                 },
-                [agentNode.id]: {
-                    main: [[{ node: 'response', type: 'main', index: 0 }]]
-                }
+                [agentNode.name]: {}
             },
             active: true,
             settings: {

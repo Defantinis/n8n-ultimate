@@ -1,16 +1,13 @@
 #!/usr/bin/env node
-"use strict";
 /**
  * Test Runner for n8n-ultimate System Integration Tests
  */
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.runTests = runTests;
-const test_system_integration_js_1 = require("./test-system-integration.js");
-const path = require("path");
+import { SystemIntegrationTester } from './test-system-integration.js';
+import * as path from 'path';
 async function runTests() {
     console.log('🎯 n8n-ultimate System Integration Test Suite');
     console.log('============================================\n');
-    const tester = new test_system_integration_js_1.SystemIntegrationTester();
+    const tester = new SystemIntegrationTester();
     try {
         // Run the full test suite
         const results = await tester.runFullTestSuite();
@@ -49,3 +46,5 @@ async function runTests() {
 if (require.main === module) {
     runTests();
 }
+export { runTests };
+//# sourceMappingURL=run-tests.js.map

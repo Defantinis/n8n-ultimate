@@ -4,14 +4,13 @@
  */
 
 import { EventEmitter } from 'events';
-import { PerformanceAwareErrorHandler } from './performance-aware-error-handler';
-import { ErrorClassifier, ErrorType, ErrorSeverity } from './error-classifier';
-import { AdvancedErrorLogger } from './error-logger';
-import { ErrorRecoveryManager } from './error-recovery';
-import { ErrorReporter } from './error-reporter';
-import { ValidationErrorIntegrator } from '../validation/validation-error-integrator';
-import { CommunityNodeIntegrationManager } from '../community/community-node-integration-api';
-import { N8NWorkflowSchema } from '../validation/n8n-workflow-schema';
+import { PerformanceAwareErrorHandler } from './performance-aware-error-handler.js';
+import { ErrorClassifier, ErrorType, ErrorSeverity } from './error-classifier.js';
+import { AdvancedErrorLogger } from './error-logger.js';
+import { ErrorRecoveryManager } from './error-recovery.js';
+import { ErrorReporter } from './error-reporter.js';
+import { SimplifiedValidationErrorIntegrator } from '../validation/validation-error-integrator.js';
+import { CommunityNodeIntegrationManager } from '../community/community-node-integration-api.js';
 
 /**
  * Test result interface
@@ -74,7 +73,7 @@ export interface ErrorTestingMetrics {
 export class ErrorTestingFramework extends EventEmitter {
   private config: ErrorTestSuiteConfig;
   private errorHandler: PerformanceAwareErrorHandler;
-  private validationIntegrator: ValidationErrorIntegrator;
+  private validationIntegrator: SimplifiedValidationErrorIntegrator;
   private communityNodeManager: CommunityNodeIntegrationManager;
   
   // Test components
@@ -728,7 +727,7 @@ export class ErrorTestingFramework extends EventEmitter {
    */
   private initializeComponents(): void {
     this.errorHandler = new PerformanceAwareErrorHandler();
-    this.validationIntegrator = new ValidationErrorIntegrator();
+    this.validationIntegrator = new SimplifiedValidationErrorIntegrator();
     this.communityNodeManager = new CommunityNodeIntegrationManager();
     
     // Initialize error simulators

@@ -9,14 +9,16 @@ import crypto from 'crypto';
  * Ollama Cache Manager for optimizing API response caching
  */
 export class OllamaCacheManager {
+    cache = new Map();
+    stats = {
+        totalHits: 0,
+        totalMisses: 0,
+        responseTimeSum: 0,
+        responseTimeCount: 0
+    };
+    cleanupTimer;
+    config;
     constructor(config) {
-        this.cache = new Map();
-        this.stats = {
-            totalHits: 0,
-            totalMisses: 0,
-            responseTimeSum: 0,
-            responseTimeCount: 0
-        };
         this.config = {
             maxEntries: 1000,
             defaultTtl: 30 * 60 * 1000, // 30 minutes
@@ -263,3 +265,4 @@ export const ollamaCacheManager = new OllamaCacheManager({
     compressionEnabled: true,
     persistToDisk: false
 });
+//# sourceMappingURL=ollama-cache-manager.js.map

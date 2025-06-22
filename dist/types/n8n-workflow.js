@@ -1,5 +1,6 @@
 /**
  * TypeScript type definitions for n8n workflow structure
- * Based on analysis of n8nscraper.json workflow
+ * This is the canonical source of truth for workflow-related types.
  */
 export {};
+//# sourceMappingURL=n8n-workflow.js.map

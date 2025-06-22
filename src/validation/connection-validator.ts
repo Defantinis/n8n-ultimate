@@ -4,17 +4,18 @@
  */
 
 import {
-  N8NWorkflowSchema,
-  N8NNode,
-  N8NConnections,
+  N8nWorkflow,
+  N8nNode,
+  N8nConnections,
   ValidationResult,
-  WorkflowSchemaUtils
-} from './n8n-workflow-schema';
+  ValidationError,
+  ValidationWarning
+} from '../types/n8n-workflow.js';
 
 import {
   NodeCompatibilityValidator,
   NodeCompatibilityUtils
-} from './node-compatibility-validator';
+} from './node-compatibility-validator.js';
 
 /**
  * Connection validation types
@@ -22,7 +23,7 @@ import {
 export interface ConnectionValidationRule {
   name: string;
   description: string;
-  validate: (workflow: N8NWorkflowSchema) => ValidationResult[];
+  validate: (workflow: N8nWorkflow) => { errors: ValidationError[], warnings: ValidationWarning[] };
 }
 
 /**
@@ -75,31 +76,36 @@ export class ConnectionValidator {
   /**
    * Validate all connections in a workflow
    */
-  validateWorkflowConnections(workflow: N8NWorkflowSchema): ValidationResult[] {
-    const results: ValidationResult[] = [];
+  validateWorkflowConnections(workflow: N8nWorkflow): ValidationResult {
+    const allErrors: ValidationError[] = [];
+    const allWarnings: ValidationWarning[] = [];
 
     // Run all validation rules
     for (const rule of this.validationRules) {
       try {
         const ruleResults = rule.validate(workflow);
-        results.push(...ruleResults);
+        allErrors.push(...ruleResults.errors);
+        allWarnings.push(...ruleResults.warnings);
       } catch (error) {
-        results.push({
-          valid: false,
+        allErrors.push({
+          type: 'structure',
           message: `Validation rule '${rule.name}' failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-          severity: 'error',
-          rule: rule.name
+          severity: 'error'
         });
       }
     }
 
-    return results;
+    return {
+      isValid: allErrors.length === 0,
+      errors: allErrors,
+      warnings: allWarnings
+    };
   }
 
   /**
    * Analyze data flow in the workflow
    */
-  analyzeDataFlow(workflow: N8NWorkflowSchema): DataFlowAnalysis {
+  analyzeDataFlow(workflow: N8nWorkflow): DataFlowAnalysis {
     // Find entry points (nodes with no input connections)
     const entryPoints = this.findEntryPoints(workflow);
     
@@ -135,7 +141,7 @@ export class ConnectionValidator {
   /**
    * Generate connection statistics
    */
-  generateConnectionStatistics(workflow: N8NWorkflowSchema): ConnectionStatistics {
+  generateConnectionStatistics(workflow: N8nWorkflow): ConnectionStatistics {
     const connections = workflow.connections;
     let totalConnections = 0;
     const connectionsByType: Record<string, number> = {};
@@ -232,72 +238,46 @@ export class ConnectionValidator {
   /**
    * Validate connection integrity
    */
-  private validateConnectionIntegrity(workflow: N8NWorkflowSchema): ValidationResult[] {
-    const results: ValidationResult[] = [];
+  private validateConnectionIntegrity(workflow: N8nWorkflow): { errors: ValidationError[], warnings: ValidationWarning[] } {
+    const errors: ValidationError[] = [];
+    const warnings: ValidationWarning[] = [];
     const nodeIds = new Set(workflow.nodes.map(n => n.id));
 
     for (const [sourceNodeId, outputs] of Object.entries(workflow.connections)) {
       // Check if source node exists
       if (!nodeIds.has(sourceNodeId)) {
-        results.push({
-          valid: false,
+        errors.push({
+          type: 'connection',
           message: `Connection references non-existent source node: ${sourceNodeId}`,
           nodeId: sourceNodeId,
-          severity: 'error',
-          rule: 'connection_integrity'
+          severity: 'error'
         });
         continue;
       }
 
-      for (const [outputType, connectionList] of Object.entries(outputs)) {
-        for (const connection of connectionList) {
-          // Check if target node exists
-          if (!nodeIds.has(connection.node)) {
-            results.push({
-              valid: false,
-              message: `Connection from ${sourceNodeId} references non-existent target node: ${connection.node}`,
-              nodeId: sourceNodeId,
-              connectionId: connection.node,
-              severity: 'error',
-              rule: 'connection_integrity'
-            });
+      for (const output of Object.values(outputs)) {
+          for (const connection of output) {
+              if (!nodeIds.has(connection.node)) {
+                  errors.push({
+                      type: 'connection',
+                      message: `Connection references non-existent target node: ${connection.node}`,
+                      nodeId: sourceNodeId,
+                      severity: 'error'
+                  });
+              }
           }
-
-          // Validate connection index
-          if (typeof connection.index !== 'number' || connection.index < 0) {
-            results.push({
-              valid: false,
-              message: `Invalid connection index from ${sourceNodeId} to ${connection.node}: ${connection.index}`,
-              nodeId: sourceNodeId,
-              connectionId: connection.node,
-              severity: 'error',
-              rule: 'connection_integrity'
-            });
-          }
-
-          // Validate connection type
-          if (!connection.type || typeof connection.type !== 'string') {
-            results.push({
-              valid: false,
-              message: `Invalid connection type from ${sourceNodeId} to ${connection.node}: ${connection.type}`,
-              nodeId: sourceNodeId,
-              connectionId: connection.node,
-              severity: 'error',
-              rule: 'connection_integrity'
-            });
-          }
-        }
       }
     }
 
-    return results;
+    return { errors, warnings };
   }
 
   /**
    * Validate connection mapping consistency
    */
-  private validateConnectionMapping(workflow: N8NWorkflowSchema): ValidationResult[] {
-    const results: ValidationResult[] = [];
+  private validateConnectionMapping(workflow: N8nWorkflow): { errors: ValidationError[], warnings: ValidationWarning[] } {
+    const errors: ValidationError[] = [];
+    const warnings: ValidationWarning[] = [];
 
     // Check for duplicate connections
     const connectionMap = new Map<string, number>();
@@ -320,36 +300,32 @@ export class ConnectionValidator {
     for (const [connectionKey, count] of Array.from(connectionMap.entries())) {
       if (count > 1) {
         const [source, target] = connectionKey.split('->');
-        results.push({
-          valid: false,
+        warnings.push({
+          type: 'connection',
           message: `Duplicate connection detected: ${connectionKey} (${count} instances)`,
           nodeId: source,
-          connectionId: target.split(':')[0],
-          severity: 'warning',
-          rule: 'connection_mapping'
         });
       }
     }
 
-    return results;
+    return { errors, warnings };
   }
 
   /**
    * Validate data flow continuity
    */
-  private validateDataFlowContinuity(workflow: N8NWorkflowSchema): ValidationResult[] {
-    const results: ValidationResult[] = [];
+  private validateDataFlowContinuity(workflow: N8nWorkflow): ValidationResult {
+    const errors: ValidationError[] = [];
+    const warnings: ValidationWarning[] = [];
     const analysis = this.analyzeDataFlow(workflow);
 
     // Check for unreachable nodes
     if (analysis.unreachableNodes.length > 0) {
       for (const nodeId of analysis.unreachableNodes) {
-        results.push({
-          valid: false,
+        warnings.push({
+          type: 'node',
           message: `Node ${nodeId} is unreachable from entry points`,
           nodeId: nodeId,
-          severity: 'warning',
-          rule: 'data_flow_continuity'
         });
       }
     }
@@ -357,34 +333,36 @@ export class ConnectionValidator {
     // Check for isolated nodes
     if (analysis.isolatedNodes.length > 0) {
       for (const nodeId of analysis.isolatedNodes) {
-        results.push({
-          valid: false,
+        warnings.push({
+          type: 'node',
           message: `Node ${nodeId} is isolated (no connections)`,
           nodeId: nodeId,
-          severity: 'warning',
-          rule: 'data_flow_continuity'
         });
       }
     }
 
     // Check for missing entry points
     if (analysis.entryPoints.length === 0 && workflow.nodes.length > 0) {
-      results.push({
-        valid: false,
+      errors.push({
+        type: 'workflow',
         message: 'Workflow has no entry points (trigger nodes)',
-        severity: 'error',
-        rule: 'data_flow_continuity'
+        severity: 'error'
       });
     }
 
-    return results;
+    return {
+      isValid: errors.length === 0,
+      errors,
+      warnings
+    };
   }
 
   /**
    * Validate connection types
    */
-  private validateConnectionTypes(workflow: N8NWorkflowSchema): ValidationResult[] {
-    const results: ValidationResult[] = [];
+  private validateConnectionTypes(workflow: N8nWorkflow): { errors: ValidationError[], warnings: ValidationWarning[] } {
+    const errors: ValidationError[] = [];
+    const warnings: ValidationWarning[] = [];
 
     for (const [sourceNodeId, outputs] of Object.entries(workflow.connections)) {
       const sourceNode = workflow.nodes.find(n => n.id === sourceNodeId);
@@ -395,98 +373,83 @@ export class ConnectionValidator {
           const targetNode = workflow.nodes.find(n => n.id === connection.node);
           if (!targetNode) continue;
 
-          // Use node compatibility validator to check connection
-          const canConnect = NodeCompatibilityUtils.canConnect(
-            sourceNode.type,
-            targetNode.type,
-            outputType,
-            connection.type
-          );
+          const canConnect = NodeCompatibilityUtils.canConnect(sourceNode.type, targetNode.type, outputType, connection.type);
 
           if (!canConnect) {
-            results.push({
-              valid: false,
+            errors.push({
+              type: 'connection',
               message: `Incompatible connection from ${sourceNode.type} (${sourceNodeId}) to ${targetNode.type} (${connection.node}): ${outputType} -> ${connection.type}`,
               nodeId: sourceNodeId,
-              connectionId: connection.node,
-              severity: 'error',
-              rule: 'connection_types'
+              severity: 'error'
             });
           }
         }
       }
     }
 
-    return results;
+    return { errors, warnings };
   }
 
   /**
    * Validate circular dependencies
    */
-  private validateCircularDependencies(workflow: N8NWorkflowSchema): ValidationResult[] {
-    const results: ValidationResult[] = [];
+  private validateCircularDependencies(workflow: N8nWorkflow): { errors: ValidationError[], warnings: ValidationWarning[] } {
+    const errors: ValidationError[] = [];
+    const warnings: ValidationWarning[] = [];
     const cycles = this.detectCycles(workflow);
 
     for (const cycle of cycles) {
-      results.push({
-        valid: false,
+      errors.push({
+        type: 'cycle',
         message: `Circular dependency detected: ${cycle.join(' -> ')} -> ${cycle[0]}`,
-        details: `Cycle involves nodes: ${cycle.join(', ')}`,
-        severity: 'error',
-        rule: 'circular_dependencies'
+        severity: 'error'
       });
     }
 
-    return results;
+    return { errors, warnings };
   }
 
   /**
    * Validate connection counts
    */
-  private validateConnectionCounts(workflow: N8NWorkflowSchema): ValidationResult[] {
-    const results: ValidationResult[] = [];
+  private validateConnectionCounts(workflow: N8nWorkflow): { errors: ValidationError[], warnings: ValidationWarning[] } {
+    const errors: ValidationError[] = [];
+    const warnings: ValidationWarning[] = [];
 
-    // Use node compatibility validator to check connection limits
-    for (const node of workflow.nodes) {
-      const nodeResults = this.nodeCompatibilityValidator.validateNode(node, workflow);
-      const connectionErrors = nodeResults.filter(r => 
-        !r.valid && r.message?.includes('connections')
-      );
-      
-      results.push(...connectionErrors.map(r => ({
-        ...r,
-        rule: 'connection_counts'
-      })));
-    }
+    // Use node compatibility validator
+    const nodeValidator = new NodeCompatibilityValidator();
+    const nodeResults = nodeValidator.validateWorkflowNodeCompatibility(workflow);
+    
+    const nodeErrors = nodeResults.errors.filter(e => e.type === 'connection');
+    errors.push(...nodeErrors);
 
-    return results;
+    return { errors, warnings };
   }
 
   /**
    * Validate orphaned nodes
    */
-  private validateOrphanedNodes(workflow: N8NWorkflowSchema): ValidationResult[] {
-    const results: ValidationResult[] = [];
+  private validateOrphanedNodes(workflow: N8nWorkflow): { errors: ValidationError[], warnings: ValidationWarning[] } {
+    const errors: ValidationError[] = [];
+    const warnings: ValidationWarning[] = [];
     const analysis = this.analyzeDataFlow(workflow);
 
     // Report isolated nodes as validation issues
     for (const nodeId of analysis.isolatedNodes) {
-      results.push({
-        valid: false,
+      warnings.push({
+        type: 'node',
         message: `Node ${nodeId} is orphaned (no input or output connections)`,
         nodeId: nodeId,
-        severity: 'warning',
-        rule: 'orphaned_nodes'
       });
     }
 
-    return results;
+    return { errors, warnings };
   }
 
   /**
    * Find entry points (nodes with no input connections)
    */
-  private findEntryPoints(workflow: N8NWorkflowSchema): string[] {
+  private findEntryPoints(workflow: N8nWorkflow): string[] {
     const nodeIds = new Set(workflow.nodes.map(n => n.id));
     const nodesWithInputs = new Set<string>();
 
@@ -506,7 +469,7 @@ export class ConnectionValidator {
   /**
    * Find exit points (nodes with no output connections)
    */
-  private findExitPoints(workflow: N8NWorkflowSchema): string[] {
+  private findExitPoints(workflow: N8nWorkflow): string[] {
     const nodeIds = new Set(workflow.nodes.map(n => n.id));
     const nodesWithOutputs = new Set(Object.keys(workflow.connections));
 
@@ -517,7 +480,7 @@ export class ConnectionValidator {
   /**
    * Find isolated nodes (nodes with no connections at all)
    */
-  private findIsolatedNodes(workflow: N8NWorkflowSchema): string[] {
+  private findIsolatedNodes(workflow: N8nWorkflow): string[] {
     const entryPoints = this.findEntryPoints(workflow);
     const exitPoints = this.findExitPoints(workflow);
     
@@ -528,7 +491,7 @@ export class ConnectionValidator {
   /**
    * Detect cycles using DFS
    */
-  private detectCycles(workflow: N8NWorkflowSchema): string[][] {
+  private detectCycles(workflow: N8nWorkflow): string[][] {
     const visited = new Set<string>();
     const recursionStack = new Set<string>();
     const cycles: string[][] = [];
@@ -575,7 +538,7 @@ export class ConnectionValidator {
   /**
    * Find unreachable nodes from entry points
    */
-  private findUnreachableNodes(workflow: N8NWorkflowSchema, entryPoints: string[]): string[] {
+  private findUnreachableNodes(workflow: N8nWorkflow, entryPoints: string[]): string[] {
     const reachable = new Set<string>();
     const visited = new Set<string>();
 
@@ -608,7 +571,7 @@ export class ConnectionValidator {
   /**
    * Calculate maximum depth from entry points
    */
-  private calculateMaxDepth(workflow: N8NWorkflowSchema, entryPoints: string[]): number {
+  private calculateMaxDepth(workflow: N8nWorkflow, entryPoints: string[]): number {
     const depths = new Map<string, number>();
     let maxDepth = 0;
 
@@ -640,7 +603,7 @@ export class ConnectionValidator {
   /**
    * Generate connection paths from entry points
    */
-  private generateConnectionPaths(workflow: N8NWorkflowSchema, entryPoints: string[]): ConnectionPath[] {
+  private generateConnectionPaths(workflow: N8nWorkflow, entryPoints: string[]): ConnectionPath[] {
     const paths: ConnectionPath[] = [];
 
     const dfs = (nodeId: string, currentPath: string[]): void => {
@@ -712,7 +675,7 @@ export const ConnectionValidatorUtils = {
   /**
    * Check if two nodes are connected
    */
-  areNodesConnected(workflow: N8NWorkflowSchema, sourceId: string, targetId: string): boolean {
+  areNodesConnected(workflow: N8nWorkflow, sourceId: string, targetId: string): boolean {
     if (!workflow.connections[sourceId]) return false;
     
     for (const outputs of Object.values(workflow.connections[sourceId])) {
@@ -726,7 +689,7 @@ export const ConnectionValidatorUtils = {
   /**
    * Get all connections for a node
    */
-  getNodeConnections(workflow: N8NWorkflowSchema, nodeId: string): {
+  getNodeConnections(workflow: N8nWorkflow, nodeId: string): {
     inputs: Array<{ sourceNode: string; outputType: string; inputType: string; index: number }>;
     outputs: Array<{ targetNode: string; outputType: string; inputType: string; index: number }>;
   } {
@@ -769,7 +732,7 @@ export const ConnectionValidatorUtils = {
   /**
    * Check if workflow has cycles
    */
-  hasCycles(workflow: N8NWorkflowSchema): boolean {
+  hasCycles(workflow: N8nWorkflow): boolean {
     const validator = new ConnectionValidator();
     const cycles = (validator as any).detectCycles(workflow);
     return cycles.length > 0;
@@ -778,7 +741,7 @@ export const ConnectionValidatorUtils = {
   /**
    * Get shortest path between two nodes
    */
-  getShortestPath(workflow: N8NWorkflowSchema, sourceId: string, targetId: string): string[] | null {
+  getShortestPath(workflow: N8nWorkflow, sourceId: string, targetId: string): string[] | null {
     const visited = new Set<string>();
     const queue: { nodeId: string; path: string[] }[] = [{ nodeId: sourceId, path: [sourceId] }];
 

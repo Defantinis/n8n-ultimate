@@ -15,22 +15,23 @@
 import { EventEmitter } from 'events';
 import * as fs from 'fs/promises';
 import * as path from 'path';
-import { KnowledgeStorageManager } from '../integration/knowledge-storage-system';
-import { LearningIntegrationManager, TestingEventGenerator } from '../integration/learning-integration-system';
+import { KnowledgeStorageManager } from '../integration/knowledge-storage-system.js';
+import { LearningIntegrationManager, TestingEventGenerator } from '../integration/learning-integration-system.js';
 import { 
   KnowledgeEntry, 
   KnowledgeType, 
   KnowledgeCategory, 
   KnowledgeSource,
   TestingFrameworkLearning 
-} from '../integration/knowledge-management-system';
-import { RealWorldTestingFramework } from './real-world-testing-framework';
+} from '../integration/knowledge-management-system.js';
+import { RealWorldTestingFramework } from './real-world-testing-framework.js';
+import { TestResult, PerformanceMetrics } from '../integration/testing-patterns.js';
 
 // ============================================================================
 // INTERFACES & TYPES
 // ============================================================================
 
-export interface TestSession {
+interface TestSession {
   id: string;
   timestamp: string;
   workflowName: string;
@@ -42,7 +43,7 @@ export interface TestSession {
   improvements: ImprovementSuggestion[];
 }
 
-export interface TestExecutionResult {
+interface TestExecutionResult {
   stepName: string;
   stepType: 'http_request' | 'data_extraction' | 'validation' | 'processing' | 'error_handling';
   success: boolean;
@@ -52,23 +53,7 @@ export interface TestExecutionResult {
   consoleOutput: string[];
 }
 
-export interface PerformanceMetrics {
-  totalExecutionTime: number;
-  averageStepTime: number;
-  successRate: number;
-  dataExtractionEfficiency: number;
-  errorRecoveryRate: number;
-  resourceUtilization: ResourceMetrics;
-}
-
-export interface ResourceMetrics {
-  memoryPeak: number;
-  cpuAverage: number;
-  networkRequests: number;
-  networkLatency: number;
-}
-
-export interface ErrorDetails {
+interface ErrorDetails {
   errorType: string;
   errorMessage: string;
   errorCode?: string | number;
@@ -77,7 +62,7 @@ export interface ErrorDetails {
   resolution?: string;
 }
 
-export interface DataQualityMetrics {
+interface DataQualityMetrics {
   completeness: number; // 0-1
   accuracy: number; // 0-1
   consistency: number; // 0-1
@@ -86,7 +71,7 @@ export interface DataQualityMetrics {
   fieldCompleteness: Record<string, number>;
 }
 
-export interface LearningInsight {
+interface LearningInsight {
   type: 'pattern' | 'optimization' | 'error_pattern' | 'improvement';
   category: string;
   description: string;
@@ -96,7 +81,7 @@ export interface LearningInsight {
   evidence: any[];
 }
 
-export interface ImprovementSuggestion {
+interface ImprovementSuggestion {
   id: string;
   title: string;
   description: string;
@@ -108,7 +93,7 @@ export interface ImprovementSuggestion {
   autoApplicable: boolean;
 }
 
-export interface LearningPattern {
+interface LearningPattern {
   patternId: string;
   patternType: string;
   occurrences: number;
@@ -150,11 +135,7 @@ export class ComprehensiveLearningTestingFramework extends EventEmitter {
     this.REPORTS_PATH = path.join(projectRoot, '.taskmaster', 'testing', 'reports');
     
     // Initialize knowledge and learning systems
-    this.knowledgeStorage = knowledgeStorage || new KnowledgeStorageManager({
-      storageType: 'file',
-      connectionString: path.join(projectRoot, '.taskmaster', 'knowledge'),
-      enableCaching: true
-    });
+    this.knowledgeStorage = knowledgeStorage || new KnowledgeStorageManager();
     
     this.learningManager = learningManager || new LearningIntegrationManager(this.knowledgeStorage);
     this.eventGenerator = new TestingEventGenerator(this.learningManager);
@@ -208,14 +189,6 @@ export class ComprehensiveLearningTestingFramework extends EventEmitter {
     
     this.testSessions.set(sessionId, this.currentSession);
     
-    // Generate learning event
-    await this.eventGenerator.generateTestStartedEvent({
-      testName: workflowName,
-      testType: 'workflow_execution',
-      timestamp: new Date().toISOString(),
-      metadata: { sessionId, workflowVersion }
-    });
-    
     console.log(`🧪 Test session started: ${sessionId}`);
     return sessionId;
   }
@@ -247,15 +220,17 @@ export class ComprehensiveLearningTestingFramework extends EventEmitter {
     this.updatePerformanceMetrics(result);
 
     // Generate real-time learning event
-    await this.eventGenerator.generateTestStepCompletedEvent({
-      testName: this.currentSession.workflowName,
-      stepName,
-      success,
-      executionTime,
-      timestamp: new Date().toISOString()
-    });
-
-    console.log(`📊 Recorded test step: ${stepName} (${success ? 'SUCCESS' : 'FAILED'})`);
+    const testResult: TestResult = {
+        id: this.currentSession.id,
+        name: this.currentSession.workflowName,
+        status: success ? 'passed' : 'failed',
+        duration: executionTime,
+        errors: errorDetails ? [errorDetails.errorMessage] : [],
+        warnings: [],
+        assertions: [],
+        performance: this.currentSession.performanceMetrics
+    };
+    await this.eventGenerator.generateTestCompletedEvent(testResult);
   }
 
   async finishTestSession(): Promise<TestSession> {
@@ -263,40 +238,17 @@ export class ComprehensiveLearningTestingFramework extends EventEmitter {
       throw new Error('No active test session');
     }
 
-    // Finalize performance metrics
     this.finalizePerformanceMetrics();
-
-    // Generate learning insights
     await this.generateLearningInsights();
-
-    // Generate improvement suggestions
     await this.generateImprovementSuggestions();
-
-    // Store session data persistently
+    await this.updateLearningPatterns();
     await this.storeTestSession();
 
-    // Update learning patterns
-    await this.updateLearningPatterns();
+    console.log(`🏁 Test session finished: ${this.currentSession.id}`);
 
-    // Generate completion event
-    await this.eventGenerator.generateTestCompletedEvent({
-      testName: this.currentSession.workflowName,
-      passed: this.currentSession.performanceMetrics.successRate > 0.8,
-      executionTime: this.currentSession.performanceMetrics.totalExecutionTime,
-      timestamp: new Date().toISOString(),
-      assertions: this.currentSession.testResults.length,
-      errors: this.currentSession.testResults.filter(r => !r.success).length
-    });
-
-    const completedSession = { ...this.currentSession };
+    const finishedSession = { ...this.currentSession };
     this.currentSession = undefined;
-
-    console.log(`✅ Test session completed: ${completedSession.id}`);
-    console.log(`   Success Rate: ${(completedSession.performanceMetrics.successRate * 100).toFixed(1)}%`);
-    console.log(`   Insights Generated: ${completedSession.learningInsights.length}`);
-    console.log(`   Improvements Suggested: ${completedSession.improvements.length}`);
-
-    return completedSession;
+    return finishedSession;
   }
 
   // ============================================================================
@@ -326,21 +278,27 @@ export class ComprehensiveLearningTestingFramework extends EventEmitter {
     // Error patterns
     const errorSteps = results.filter(r => !r.success);
     if (errorSteps.length > 0) {
-      const errorTypes = errorSteps.reduce((acc, step) => {
-        const type = step.errorDetails?.errorType || 'unknown';
-        acc[type] = (acc[type] || 0) + 1;
-        return acc;
-      }, {} as Record<string, number>);
-
-      insights.push({
-        type: 'error_pattern',
-        category: 'reliability',
-        description: `Common error types: ${Object.keys(errorTypes).join(', ')}`,
-        confidence: 0.8,
-        frequency: errorSteps.length,
-        impact: 'high',
-        evidence: errorTypes
+      const errorTypes: Record<string, number> = {};
+      errorSteps.forEach(result => {
+        if (result.errorDetails) {
+          const type = result.errorDetails.errorType;
+          errorTypes[type] = (errorTypes[type] || 0) + 1;
+        }
       });
+
+      if (Object.keys(errorTypes).length > 0) {
+        const insight: LearningInsight = {
+          type: 'error_pattern',
+          category: 'reliability',
+          description: 'Recurring error patterns detected in test session',
+          confidence: 0.75,
+          frequency: Object.values(errorTypes).reduce((a, b) => a + b, 0),
+          impact: 'medium',
+          evidence: [errorTypes]
+        };
+        this.currentSession.learningInsights.push(insight);
+        await this.storeInsightAsKnowledge(insight);
+      }
     }
 
     // Data quality patterns
@@ -366,11 +324,6 @@ export class ComprehensiveLearningTestingFramework extends EventEmitter {
     }
 
     this.currentSession.learningInsights = insights;
-
-    // Store insights in knowledge system
-    for (const insight of insights) {
-      await this.storeInsightAsKnowledge(insight);
-    }
   }
 
   private async generateImprovementSuggestions(): Promise<void> {
@@ -487,10 +440,6 @@ export class ComprehensiveLearningTestingFramework extends EventEmitter {
   private async storeTestSession(): Promise<void> {
     if (!this.currentSession) return;
 
-    const sessionPath = path.join(this.STORAGE_PATH, `${this.currentSession.id}.json`);
-    await fs.writeFile(sessionPath, JSON.stringify(this.currentSession, null, 2));
-
-    // Also store in knowledge system
     const knowledgeEntry: KnowledgeEntry = {
       id: `test_session_${this.currentSession.id}`,
       type: KnowledgeType.TESTING_PATTERN,
@@ -498,45 +447,40 @@ export class ComprehensiveLearningTestingFramework extends EventEmitter {
       source: KnowledgeSource.AUTOMATED_TESTING,
       title: `Test Session: ${this.currentSession.workflowName}`,
       description: `Test session results for ${this.currentSession.workflowName} v${this.currentSession.workflowVersion}`,
-      content: JSON.stringify(this.currentSession),
       metadata: {
-        sessionId: this.currentSession.id,
-        workflowName: this.currentSession.workflowName,
-        successRate: this.currentSession.performanceMetrics.successRate,
-        executionTime: this.currentSession.performanceMetrics.totalExecutionTime,
-        insightCount: this.currentSession.learningInsights.length,
-        improvementCount: this.currentSession.improvements.length
+        ...this.currentSession
       },
-      timestamp: new Date().toISOString(),
+      timestamp: new Date(),
       tags: ['test-session', 'workflow-testing', this.currentSession.workflowName],
-      version: '1.0'
+      confidence: this.currentSession.performanceMetrics.successRate,
+      usageCount: 1,
+      lastAccessed: new Date(),
     };
 
-    await this.knowledgeStorage.store(knowledgeEntry);
+    await this.knowledgeStorage.create(knowledgeEntry);
   }
 
   private async storeInsightAsKnowledge(insight: LearningInsight): Promise<void> {
     const knowledgeEntry: KnowledgeEntry = {
-      id: `insight_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      id: `insight_${Date.now()}`,
       type: KnowledgeType.LEARNING_INSIGHT,
-      category: KnowledgeCategory.OPTIMIZATION,
-      source: KnowledgeSource.AUTOMATED_ANALYSIS,
-      title: `${insight.type}: ${insight.description}`,
-      description: insight.description,
-      content: JSON.stringify(insight),
+      category: KnowledgeCategory.TESTING,
+      title: insight.description,
+      description: `Insight of type ${insight.type} with impact ${insight.impact}`,
       metadata: {
-        insightType: insight.type,
-        category: insight.category,
         confidence: insight.confidence,
         frequency: insight.frequency,
         impact: insight.impact
       },
-      timestamp: new Date().toISOString(),
+      timestamp: new Date(),
       tags: [insight.type, insight.category, 'learning-insight'],
-      version: '1.0'
+      source: KnowledgeSource.AUTOMATED_ANALYSIS,
+      confidence: insight.confidence,
+      usageCount: 0,
+      lastAccessed: new Date(),
     };
 
-    await this.knowledgeStorage.store(knowledgeEntry);
+    await this.knowledgeStorage.create(knowledgeEntry);
   }
 
   private async saveLearningPatterns(): Promise<void> {
@@ -599,45 +543,26 @@ export class ComprehensiveLearningTestingFramework extends EventEmitter {
 
   private initializePerformanceMetrics(): PerformanceMetrics {
     return {
-      totalExecutionTime: 0,
-      averageStepTime: 0,
-      successRate: 0,
-      dataExtractionEfficiency: 0,
-      errorRecoveryRate: 0,
-      resourceUtilization: {
-        memoryPeak: 0,
-        cpuAverage: 0,
-        networkRequests: 0,
-        networkLatency: 0
-      }
+      executionTime: 0,
+      memoryUsage: 0,
+      nodeExecutionTimes: {},
+      dataTransferSizes: {}
     };
   }
 
   private updatePerformanceMetrics(result: TestExecutionResult): void {
     if (!this.currentSession) return;
-
-    const metrics = this.currentSession.performanceMetrics;
-    const results = this.currentSession.testResults;
-
-    metrics.totalExecutionTime += result.executionTime;
-    metrics.averageStepTime = metrics.totalExecutionTime / results.length;
-    metrics.successRate = results.filter(r => r.success).length / results.length;
-
-    if (result.dataQuality) {
-      metrics.dataExtractionEfficiency = result.dataQuality.completeness;
-    }
+    this.currentSession.performanceMetrics.executionTime += result.executionTime;
+    // other metrics would be updated here
   }
 
   private finalizePerformanceMetrics(): void {
     if (!this.currentSession) return;
 
     const results = this.currentSession.testResults;
-    const errorResults = results.filter(r => !r.success);
-    
-    // Calculate error recovery rate (how many errors were recoverable)
-    const recoverableErrors = errorResults.filter(r => r.errorDetails?.recoverable).length;
-    this.currentSession.performanceMetrics.errorRecoveryRate = 
-      errorResults.length > 0 ? recoverableErrors / errorResults.length : 1.0;
+    const metrics = this.currentSession.performanceMetrics;
+
+    metrics.successRate = results.filter(r => r.success).length / results.length;
   }
 
   private hashString(str: string): string {
@@ -669,7 +594,7 @@ export class ComprehensiveLearningTestingFramework extends EventEmitter {
     
     return {
       executionTimeImprovement: this.calculateTrendImprovement(
-        sorted.map(s => s.performanceMetrics.totalExecutionTime)
+        sorted.map(s => s.performanceMetrics.executionTime)
       ),
       successRateImprovement: this.calculateTrendImprovement(
         sorted.map(s => s.performanceMetrics.successRate)

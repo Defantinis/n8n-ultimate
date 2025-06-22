@@ -104,6 +104,7 @@ export interface PerformanceMetrics {
     memoryUsage: number;
     nodeExecutionTimes: Record<string, number>;
     dataTransferSizes: Record<string, number>;
+    successRate?: number;
 }
 export declare class MockDataGenerator {
     static generateNodeData(nodeType: string, count?: number): INodeExecutionData[];

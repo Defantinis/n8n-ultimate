@@ -1,23 +1,12 @@
 import { N8nWorkflow, ValidationResult } from '../types/n8n-workflow.js';
-import { WorkflowValidationResult } from './n8n-workflow-schema.js';
 /**
  * Validates n8n workflow structure and identifies issues
  */
 export declare class WorkflowValidator {
     /**
-     * Validate a complete workflow (legacy method)
+     * Validate a complete workflow
      */
     validate(workflow: N8nWorkflow): Promise<ValidationResult>;
-    /**
-     * Enhanced validation using official n8n schema patterns
-     */
-    validateWithN8nSchema(workflow: N8nWorkflow): Promise<WorkflowValidationResult & {
-        legacyValidation: ValidationResult;
-    }>;
-    /**
-     * Quick validation check using n8n official patterns
-     */
-    static validateQuick(workflow: N8nWorkflow): WorkflowValidationResult;
     /**
      * Validate basic workflow structure
      */
@@ -47,11 +36,11 @@ export declare class WorkflowValidator {
      */
     private validateStartNode;
     /**
-     * Validate workflow connections
+     * Validate connections between nodes
      */
     private validateConnections;
     /**
-     * Check for nodes with no connections (isolated nodes)
+     * Check for nodes with no incoming or outgoing connections
      */
     private checkForIsolatedNodes;
     /**

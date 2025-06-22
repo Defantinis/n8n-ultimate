@@ -4,10 +4,12 @@
  */
 
 import {
-  N8NWorkflowSchema,
-  N8NNode,
-  ValidationResult
-} from './n8n-workflow-schema';
+  N8nWorkflow,
+  N8nNode,
+  ValidationResult,
+  ValidationError,
+  ValidationWarning
+} from '../types/n8n-workflow.js';
 
 import { ConnectionValidator } from './connection-validator';
 
@@ -112,22 +114,31 @@ export class ErrorHandlingValidator {
   /**
    * Validate workflow error handling
    */
-  validateErrorHandling(workflow: N8NWorkflowSchema): ValidationResult[] {
-    const results: ValidationResult[] = [];
+  validateErrorHandling(workflow: N8nWorkflow): ValidationResult {
+    const allErrors: ValidationError[] = [];
+    const allWarnings: ValidationWarning[] = [];
 
     // Validate node-level error handling
-    results.push(...this.validateNodeErrorHandling(workflow));
+    const nodeResults = this.validateNodeErrorHandling(workflow);
+    allErrors.push(...nodeResults.errors);
+    allWarnings.push(...nodeResults.warnings);
 
     // Validate workflow-level error handling
-    results.push(...this.validateWorkflowErrorHandling(workflow));
+    const workflowResults = this.validateWorkflowErrorHandling(workflow);
+    allErrors.push(...workflowResults.errors);
+    allWarnings.push(...workflowResults.warnings);
 
-    return results;
+    return {
+      isValid: allErrors.length === 0,
+      errors: allErrors,
+      warnings: allWarnings
+    };
   }
 
   /**
    * Analyze node error handling
    */
-  analyzeNodeErrorHandling(workflow: N8NWorkflowSchema): NodeErrorHandling[] {
+  analyzeNodeErrorHandling(workflow: N8nWorkflow): NodeErrorHandling[] {
     return workflow.nodes.map(node => {
       const pattern = ERROR_PATTERNS[node.type] || this.getDefaultPattern();
       
@@ -150,7 +161,7 @@ export class ErrorHandlingValidator {
   /**
    * Analyze workflow error handling
    */
-  analyzeWorkflowErrorHandling(workflow: N8NWorkflowSchema): WorkflowErrorHandling {
+  analyzeWorkflowErrorHandling(workflow: N8nWorkflow): WorkflowErrorHandling {
     const nodeAnalysis = this.analyzeNodeErrorHandling(workflow);
     const totalNodes = workflow.nodes.length;
     const nodesWithErrorHandling = nodeAnalysis.filter(n => n.hasRetryLogic || n.hasErrorOutput).length;
@@ -171,62 +182,57 @@ export class ErrorHandlingValidator {
   /**
    * Private helper methods
    */
-  private validateNodeErrorHandling(workflow: N8NWorkflowSchema): ValidationResult[] {
-    const results: ValidationResult[] = [];
+  private validateNodeErrorHandling(workflow: N8nWorkflow): ValidationResult {
+    const errors: ValidationError[] = [];
+    const warnings: ValidationWarning[] = [];
     const nodeAnalysis = this.analyzeNodeErrorHandling(workflow);
 
     for (const analysis of nodeAnalysis) {
       // Check for critical nodes without error handling
       if (analysis.errorTypes.includes(ErrorType.NETWORK_CONNECTIVITY) && !analysis.hasRetryLogic) {
-        results.push({
-          valid: false,
+        warnings.push({
+          type: 'best-practice',
           message: `Network-dependent node ${analysis.nodeId} lacks retry logic`,
           nodeId: analysis.nodeId,
-          severity: 'warning',
-          rule: 'network_node_retry'
         });
       }
 
       // Check for nodes with low resilience
       if (analysis.resilience < 0.5) {
-        results.push({
-          valid: false,
+        warnings.push({
+          type: 'best-practice',
           message: `Node ${analysis.nodeId} has low error resilience: ${(analysis.resilience * 100).toFixed(1)}%`,
           nodeId: analysis.nodeId,
-          severity: 'warning',
-          rule: 'node_resilience'
         });
       }
     }
 
-    return results;
+    return { isValid: errors.length === 0, errors, warnings };
   }
 
-  private validateWorkflowErrorHandling(workflow: N8NWorkflowSchema): ValidationResult[] {
-    const results: ValidationResult[] = [];
+  private validateWorkflowErrorHandling(workflow: N8nWorkflow): ValidationResult {
+    const errors: ValidationError[] = [];
+    const warnings: ValidationWarning[] = [];
     const workflowAnalysis = this.analyzeWorkflowErrorHandling(workflow);
 
     // Check overall error handling coverage
     if (workflowAnalysis.errorHandlingCoverage < 50) {
-      results.push({
-        valid: false,
+      warnings.push({
+        type: 'best-practice',
         message: `Low error handling coverage: ${workflowAnalysis.errorHandlingCoverage.toFixed(1)}%`,
-        severity: 'warning',
-        rule: 'error_handling_coverage'
       });
     }
 
     // Check cascading failure risk
     if (workflowAnalysis.cascadingFailureRisk > 0.7) {
-      results.push({
-        valid: false,
+      errors.push({
+        type: 'structure',
         message: `High cascading failure risk: ${(workflowAnalysis.cascadingFailureRisk * 100).toFixed(1)}%`,
-        severity: 'error',
-        rule: 'cascading_failure_risk'
+        severity: 'error'
       });
     }
 
-    return results;
+    return { isValid: errors.length === 0, errors, warnings };
   }
 
   private getDefaultPattern() {
@@ -239,11 +245,11 @@ export class ErrorHandlingValidator {
     };
   }
 
-  private hasRetryConfiguration(node: N8NNode): boolean {
-    return !!(node.parameters?.retry || node.parameters?.retries || node.parameters?.maxRetries);
+  private hasRetryConfiguration(node: N8nNode): boolean {
+    return !!(node.parameters?.retryOnFail || node.parameters?.retries || node.parameters?.maxTries);
   }
 
-  private hasErrorOutputConfiguration(node: N8NNode): boolean {
+  private hasErrorOutputConfiguration(node: N8nNode): boolean {
     return !!(node.parameters?.continueOnFail || node.parameters?.alwaysOutputData);
   }
 
@@ -258,7 +264,7 @@ export class ErrorHandlingValidator {
     return Math.min(score, 1.0);
   }
 
-  private calculateCascadingFailureRisk(workflow: N8NWorkflowSchema, nodeAnalysis: NodeErrorHandling[]): number {
+  private calculateCascadingFailureRisk(workflow: N8nWorkflow, nodeAnalysis: NodeErrorHandling[]): number {
     const dataFlow = this.connectionValidator.analyzeDataFlow(workflow);
     const criticalNodes = nodeAnalysis.filter(n => n.resilience < 0.5).length;
     const totalNodes = workflow.nodes.length;

@@ -1,10 +1,9 @@
-import { validateN8nWorkflow } from './n8n-workflow-schema.js';
 /**
  * Validates n8n workflow structure and identifies issues
  */
 export class WorkflowValidator {
     /**
-     * Validate a complete workflow (legacy method)
+     * Validate a complete workflow
      */
     async validate(workflow) {
         const errors = [];
@@ -22,24 +21,6 @@ export class WorkflowValidator {
             errors,
             warnings
         };
-    }
-    /**
-     * Enhanced validation using official n8n schema patterns
-     */
-    async validateWithN8nSchema(workflow) {
-        // Run both validations
-        const n8nValidation = validateN8nWorkflow(workflow);
-        const legacyValidation = await this.validate(workflow);
-        return {
-            ...n8nValidation,
-            legacyValidation
-        };
-    }
-    /**
-     * Quick validation check using n8n official patterns
-     */
-    static validateQuick(workflow) {
-        return validateN8nWorkflow(workflow);
     }
     /**
      * Validate basic workflow structure
@@ -286,70 +267,52 @@ export class WorkflowValidator {
         }
     }
     /**
-     * Validate workflow connections
+     * Validate connections between nodes
      */
     validateConnections(workflow, errors, _warnings) {
-        const nodeNames = new Set(workflow.nodes.map(node => node.name));
-        for (const [sourceNodeName, nodeConnections] of Object.entries(workflow.connections)) {
-            // Check if source node exists
-            if (!nodeNames.has(sourceNodeName)) {
+        const nodeIds = new Set(workflow.nodes.map(node => node.id));
+        for (const sourceNodeId of Object.keys(workflow.connections)) {
+            if (!nodeIds.has(sourceNodeId)) {
                 errors.push({
                     type: 'connection',
-                    message: `Connection references non-existent source node: ${sourceNodeName}`,
+                    message: `Connection source node does not exist: ${sourceNodeId}`,
+                    nodeId: sourceNodeId,
                     severity: 'error'
                 });
                 continue;
             }
-            for (const [_outputType, outputConnections] of Object.entries(nodeConnections)) {
-                for (const connectionArray of outputConnections) {
-                    for (const connection of connectionArray) {
-                        // Check if target node exists
-                        if (!nodeNames.has(connection.node)) {
-                            errors.push({
-                                type: 'connection',
-                                message: `Connection references non-existent target node: ${connection.node}`,
-                                severity: 'error'
-                            });
-                        }
-                        // Validate connection structure
-                        if (typeof connection.type !== 'string') {
-                            errors.push({
-                                type: 'connection',
-                                message: 'Connection must have a valid type',
-                                severity: 'error'
-                            });
-                        }
-                        if (typeof connection.index !== 'number' || connection.index < 0) {
-                            errors.push({
-                                type: 'connection',
-                                message: 'Connection index must be a non-negative number',
-                                severity: 'error'
-                            });
-                        }
+            const outputs = workflow.connections[sourceNodeId];
+            for (const outputType of Object.keys(outputs)) {
+                const connectionArray = outputs[outputType];
+                for (const connection of connectionArray) {
+                    if (!nodeIds.has(connection.node)) {
+                        errors.push({
+                            type: 'connection',
+                            message: `Connection target node does not exist: ${connection.node}`,
+                            nodeId: sourceNodeId,
+                            severity: 'error'
+                        });
                     }
                 }
             }
         }
     }
     /**
-     * Check for nodes with no connections (isolated nodes)
+     * Check for nodes with no incoming or outgoing connections
      */
     checkForIsolatedNodes(workflow, warnings) {
         const connectedNodes = new Set();
-        // Collect all connected nodes
-        Object.entries(workflow.connections).forEach(([sourceNode, connections]) => {
-            connectedNodes.add(sourceNode);
-            Object.values(connections).forEach(outputConnections => {
-                outputConnections.forEach(connectionArray => {
-                    connectionArray.forEach(connection => {
-                        connectedNodes.add(connection.node);
-                    });
+        Object.keys(workflow.connections).forEach(sourceNodeId => {
+            connectedNodes.add(sourceNodeId);
+            const outputs = workflow.connections[sourceNodeId];
+            Object.values(outputs).forEach(connectionArray => {
+                connectionArray.forEach(connection => {
+                    connectedNodes.add(connection.node);
                 });
             });
         });
-        // Find isolated nodes
         workflow.nodes.forEach(node => {
-            if (!connectedNodes.has(node.name) && node.type !== 'n8n-nodes-base.start') {
+            if (!connectedNodes.has(node.id)) {
                 warnings.push({
                     type: 'best-practice',
                     message: 'Node is not connected to any other nodes',
@@ -388,3 +351,4 @@ export class WorkflowValidator {
         }
     }
 }
+//# sourceMappingURL=workflow-validator.js.map

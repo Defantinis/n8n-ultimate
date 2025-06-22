@@ -1,7 +1,6 @@
 import { OptimizedAIAgent, OptimizedAIConfig, ConcurrentAnalysisRequest, ConcurrentPlanningRequest } from './optimized-ai-agent.js';
-import { WorkflowRequirements } from '../generators/workflow-generator.js';
+import { WorkflowRequirements, RequirementAnalysis } from './ai-agent.js';
 import { WorkflowPlan } from '../types/n8n-workflow.js';
-import { RequirementAnalysis } from './ai-agent.js';
 
 /**
  * Test data generator for optimized AI agent testing

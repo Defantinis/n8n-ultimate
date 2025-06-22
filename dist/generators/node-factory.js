@@ -3,6 +3,7 @@ import { randomUUID } from 'crypto';
  * Factory class for creating n8n nodes based on specifications
  */
 export class NodeFactory {
+    nodeTemplates;
     constructor() {
         this.nodeTemplates = new Map();
         this.initializeNodeTemplates();
@@ -314,3 +315,4 @@ export class NodeFactory {
         return nodes;
     }
 }
+//# sourceMappingURL=node-factory.js.map

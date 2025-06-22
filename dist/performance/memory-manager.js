@@ -12,17 +12,20 @@ import v8 from 'v8';
  * Advanced memory management system for workflow processing
  */
 export class MemoryManager extends EventEmitter {
+    config;
+    thresholds;
+    memoryPools = new Map();
+    activeContexts = new Map();
+    memoryHistory = [];
+    gcStats = {
+        count: 0,
+        totalDuration: 0,
+        lastGC: 0
+    };
+    monitoringTimer;
+    heapSnapshots = [];
     constructor(config) {
         super();
-        this.memoryPools = new Map();
-        this.activeContexts = new Map();
-        this.memoryHistory = [];
-        this.gcStats = {
-            count: 0,
-            totalDuration: 0,
-            lastGC: 0
-        };
-        this.heapSnapshots = [];
         this.config = {
             enableGCOptimization: config?.enableGCOptimization ?? true,
             enableMemoryPools: config?.enableMemoryPools ?? true,
@@ -495,3 +498,4 @@ export const memoryManager = new MemoryManager({
         leakDetectionWindow: 60000
     }
 });
+//# sourceMappingURL=memory-manager.js.map

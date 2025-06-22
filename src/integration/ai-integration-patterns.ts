@@ -6,8 +6,8 @@
  * and AI Agents integration patterns.
  */
 
-import { N8nWorkflow, N8nNode } from '../types/n8n-workflow';
-import { IntegrationConfig, N8nLogger, ConsoleLogger } from './integration-patterns';
+import { N8nWorkflow, N8nNode } from '../types/n8n-workflow.js';
+import { IntegrationConfig, N8nLogger, ConsoleLogger } from './integration-patterns.js';
 
 /**
  * AI Integration Configuration
@@ -294,11 +294,11 @@ export class AIWorkflowPatternsClass {
       name,
       nodes,
       connections: {
-        'start': {
-          main: [[{ node: vectorStoreNode.id, type: 'main', index: 0 }]]
+        'Start': {
+          main: [{ node: vectorStoreNode.id, type: 'main', index: 0 }]
         },
-        [vectorStoreNode.id]: {
-          main: [[{ node: aiChatNode.id, type: 'main', index: 0 }]]
+        [vectorStoreNode.name]: {
+          main: [{ node: aiChatNode.id, type: 'main', index: 0 }]
         }
       },
       active: false,
@@ -365,12 +365,10 @@ export class AIWorkflowPatternsClass {
       name,
       nodes,
       connections: {
-        'webhook': {
-          main: [[{ node: agentNode.id, type: 'main', index: 0 }]]
+        'Start': {
+          main: [{ node: agentNode.id, type: 'main', index: 0 }]
         },
-        [agentNode.id]: {
-          main: [[{ node: 'response', type: 'main', index: 0 }]]
-        }
+        [agentNode.name]: {}
       },
       active: true,
       settings: {
