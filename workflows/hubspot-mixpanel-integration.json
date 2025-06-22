@@ -97,9 +97,9 @@
             "runOnce": true
           }
         },
-        "id": "Filter valid contacts",
-        "name": "Filter valid contacts",
-        "type": "n8n-nodes-base.filter",
+        "id": "067b1059-7d56-41d0-8713-e97780e0f032",
+        "name": "Split In Batches",
+        "type": "n8n-nodes-base.splitInBatches",
         "typeVersion": 1,
         "position": [
           460,
@@ -235,10 +235,11 @@
       },
       "Filter: Valid Customer IDs": {
         "main": [
+          [{"node": "Split In Batches", "type": "main", "index": 0}],
           [{"node": "Error Handler", "type": "main", "index": 0}]
         ]
       },
-      "Filter valid contacts": {
+      "Split In Batches": {
         "main": [
           [{"node": "Aggregate Contact IDs", "type": "main", "index": 0}]
         ]
