@@ -3,7 +3,6 @@ description: Guide for using Taskmaster to manage task-driven development workfl
 globs: **/*
 alwaysApply: true
 ---
-
 # Taskmaster Development Workflow
 
 This guide outlines the standard process for using Taskmaster to manage software development projects. It is written as a set of instructions for you, the AI agent.
@@ -357,12 +356,14 @@ Once a task has been broken down into subtasks using `expand_task` or similar me
 2.  **Initial Exploration & Planning (Iteration 1):**
     *   This is the first attempt at creating a concrete implementation plan.
     *   Explore the codebase to identify the precise files, functions, and even specific lines of code that will need modification.
+    *   **For n8n workflows**: Run automated validation scripts first (`node scripts/test-workflow-execution.js`) to understand current state.
     *   Determine the intended code changes (diffs) and their locations.
     *   Gather *all* relevant details from this exploration phase.
 
 3.  **Log the Plan:**
     *   Run `update_subtask` / `task-master update-subtask --id=<subtaskId> --prompt='<detailed plan>'`.
     *   Provide the *complete and detailed* findings from the exploration phase in the prompt. Include file paths, line numbers, proposed diffs, reasoning, and any potential challenges identified. Do not omit details. The goal is to create a rich, timestamped log within the subtask's `details`.
+    *   **For n8n workflows**: Include validation results, connection analysis, and visual vs structural diagnosis.
 
 4.  **Verify the Plan:**
     *   Run `get_task` / `task-master show <subtaskId>` again to confirm that the detailed implementation plan has been successfully appended to the subtask's details.
@@ -370,6 +371,7 @@ Once a task has been broken down into subtasks using `expand_task` or similar me
 5.  **Begin Implementation:**
     *   Set the subtask status using `set_task_status` / `task-master set-status --id=<subtaskId> --status=in-progress`.
     *   Start coding based on the logged plan.
+    *   **For n8n workflows**: Apply systematic 5-phase debugging methodology from [n8n_workflow_debugging.mdc](mdc:.cursor/rules/n8n_workflow_debugging.mdc).
 
 6.  **Refine and Log Progress (Iteration 2+):**
     *   As implementation progresses, you will encounter challenges, discover nuances, or confirm successful approaches.
@@ -381,26 +383,100 @@ Once a task has been broken down into subtasks using `expand_task` or similar me
         *   Specific code snippets or configurations that were successful.
         *   Decisions made, especially if confirmed with user input.
         *   Any deviations from the initial plan and the reasoning.
+        *   **For n8n workflows**: Visual vs structural issue analysis, user education provided, testing results.
     *   The objective is to continuously enrich the subtask's details, creating a log of the implementation journey that helps the AI (and human developers) learn, adapt, and avoid repeating errors.
 
-7.  **Review & Update Rules (Post-Implementation):**
+7.  **Testing & Validation (Critical for n8n Workflows):**
+    *   **Always run comprehensive testing**: `node scripts/test-workflow-execution.js`
+    *   **Validate AI integration**: Test all localhost:3000 endpoints if applicable
+    *   **User education**: If issues reported, distinguish visual from structural problems
+    *   **Demo creation**: Build comprehensive demo scripts for feature showcase
+    *   **Document findings**: Log all validation results in Task Master
+
+8.  **Review & Update Rules (Post-Implementation):**
     *   Once the implementation for the subtask is functionally complete, review all code changes and the relevant chat history.
     *   Identify any new or modified code patterns, conventions, or best practices established during the implementation.
+    *   **Capture testing patterns**: Document new testing methodologies or validation approaches
     *   Create new or update existing rules following internal guidelines (previously linked to `cursor_rules.mdc` and `self_improve.mdc`).
 
-8.  **Mark Task Complete:**
+9.  **Mark Task Complete:**
     *   After verifying the implementation and updating any necessary rules, mark the subtask as completed: `set_task_status` / `task-master set-status --id=<subtaskId> --status=done`.
 
-9.  **Commit Changes (If using Git):**
+10. **Commit Changes (If using Git):**
     *   Stage the relevant code changes and any updated/new rule files (`git add .`).
     *   Craft a comprehensive Git commit message summarizing the work done for the subtask, including both code implementation and any rule adjustments.
     *   Execute the commit command directly in the terminal (e.g., `git commit -m 'feat(module): Implement feature X for subtask <subtaskId>\n\n- Details about changes...\n- Updated rule Y for pattern Z'`).
     *   Consider if a Changeset is needed according to internal versioning guidelines (previously linked to `changeset.mdc`). If so, run `npm run changeset`, stage the generated file, and amend the commit or create a new one.
 
-10. **Proceed to Next Subtask:**
+11. **Proceed to Next Subtask:**
     *   Identify the next subtask (e.g., using `next_task` / `task-master next`).
 
-## Code Analysis & Refactoring Techniques
+## **n8n Workflow Specific Implementation Patterns**
+
+### **✅ MANDATORY: Comprehensive Testing Protocol**
+When working with n8n workflows, always follow this testing protocol:
+
+**1. Automated Validation First:**
+```bash
+# Always run before making changes
+node scripts/test-workflow-execution.js
+
+# Expected output for healthy workflow:
+# - All connections valid (0 issues)
+# - Proper execution flow traced
+# - AI service integration working
+```
+
+**2. Visual vs Structural Issue Diagnosis:**
+```bash
+# When users report "unlinked nodes" or connection issues:
+if connection_issues == 0:
+    # Visual display issue - educate user
+    echo "✅ Workflow structure is completely valid"
+    echo "📊 This appears to be a visual display issue in n8n UI"
+    echo "💡 Solution: Refresh workflow or re-import JSON"
+else:
+    # Actual structural problems - apply 5-phase debugging
+    # Reference: .cursor/rules/n8n_workflow_debugging.mdc
+```
+
+**3. AI Integration Testing:**
+```bash
+# Test all localhost:3000 endpoints
+curl -X POST http://localhost:3000/summarize-error -H "Content-Type: application/json" -d '{"test":"data"}'
+
+# Verify service is running
+npm start & # Start in background
+sleep 3     # Allow startup time
+```
+
+**4. Demo Framework Creation:**
+```bash
+# Create comprehensive demo script
+./scripts/demo-ai-workflow.sh
+
+# Should showcase:
+# - Service status verification
+# - Error analysis demonstrations
+# - Feature showcase with real examples
+# - Integration point validation
+```
+
+### **✅ Task Master Integration for n8n Workflows:**
+```bash
+# Log comprehensive testing results
+mcp_task-master-ai_update_subtask --id=<workflow-subtask> --prompt="
+WORKFLOW TESTING COMPLETE:
+- **Automated Validation**: [Connection validation results]
+- **Visual vs Structural**: [Diagnosis and user education provided] 
+- **AI Integration**: [localhost:3000 endpoint testing results]
+- **Demo Framework**: [Comprehensive feature showcase created]
+- **User Resolution**: [Issue resolved and confidence restored]
+- **Documentation**: [Testing patterns captured in rules]
+"
+```
+
+## **Code Analysis & Refactoring Techniques**
 
 - **Top-Level Function Search**:
     - Useful for understanding module structure or planning refactors.

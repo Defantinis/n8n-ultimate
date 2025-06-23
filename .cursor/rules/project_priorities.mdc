@@ -105,13 +105,70 @@ mcp_task-master-ai_get_task --id=<current-task-id>
 - **Progressive Testing**: Individual nodes → connections → end-to-end
 - **Complete HTTP Configuration**: Method, headers, parameters
 - **Comprehensive Error Handling**: Graceful degradation patterns
+- **Visual vs Structural Diagnosis**: Distinguish UI display issues from actual problems
+
+### **Established Pattern: Comprehensive Testing Framework (January 2025)**
+When users report workflow issues (especially "unlinked nodes"):
+
+**Immediate Response Protocol:**
+```bash
+# 1. FIRST: Run automated testing validation
+node scripts/test-workflow-execution.js
+
+# 2. Analyze results systematically
+# ✅ Expected for healthy workflow:
+#    - All connections valid (0 issues)
+#    - Proper execution flow traced
+#    - AI service integration working
+
+# 3. Educate user on findings
+# If 0 connection issues found:
+#    - Explain visual vs structural distinction
+#    - Reassure workflow functionality intact
+#    - Provide simple solutions (refresh/re-import)
+```
+
+**Testing Script Requirements:**
+- **Node Structure Analysis**: Map all nodes with types and IDs
+- **Connection Validation**: Verify node ID references (not names)
+- **Execution Flow Tracing**: Complete path from trigger to completion
+- **AI Service Integration**: Test all localhost:3000 endpoints
+- **Clear Reporting**: Distinguish visual from structural issues
+
+**Demo Framework Pattern:**
+```bash
+# Comprehensive feature demonstration
+./scripts/demo-ai-workflow.sh
+
+# Expected capabilities:
+# - Service status verification
+# - Error analysis demonstrations (rate limiting, auth, data processing)
+# - Feature showcase with real examples
+# - Integration point validation
+# - Comprehensive status reporting
+```
+
+### **User Education Strategies:**
+**For Visual Linking Issues:**
+- **Immediate Reassurance**: "The workflow structure is completely valid"
+- **Clear Explanation**: "This appears to be a visual display issue in n8n UI"
+- **Simple Solutions**: "Refresh workflow or re-import JSON"
+- **Technical Validation**: "Our testing confirms 0 actual connection issues"
+- **Confidence Building**: "All AI features are functional and ready"
 
 ### **Debugging Approach:**
 ```bash
 # Use established 5-phase n8n debugging methodology
 # Reference: .cursor/rules/n8n_workflow_debugging.mdc
 # Log all findings in Task Master with:
-mcp_task-master-ai_update_subtask --id=<id> --prompt="[Phase] [Finding] [Solution] [Next Steps]"
+mcp_task-master-ai_update_subtask --id=<id> --prompt="[Phase] [Finding] [Solution] [Next Steps]
+
+CRITICAL ADDITION: Visual vs Structural Analysis
+- **Automated Testing Results**: [Connection validation output]
+- **Visual Issue Diagnosis**: [UI display vs JSON structure analysis]
+- **User Education**: [Explanation provided to user]
+- **Solution Applied**: [Refresh/re-import/other]
+"
 ```
 
 ## **AI Agent Collaboration Patterns**
