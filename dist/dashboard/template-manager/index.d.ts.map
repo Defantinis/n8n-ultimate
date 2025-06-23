@@ -1,0 +1,1 @@
+{"version":3,"file":"index.d.ts","sourceRoot":"","sources":["../../../src/dashboard/template-manager/index.ts"],"names":[],"mappings":"AAGA,qBAAa,wBAAwB;IACnC,OAAO,CAAC,OAAO,CAAc;IAC7B,OAAO,CAAC,eAAe,CAAkB;IACzC,OAAO,CAAC,uBAAuB,CAAwC;gBAE3D,SAAS,EAAE,WAAW;YAUpB,MAAM;IAcpB,OAAO,CAAC,oBAAoB;IAY5B,OAAO,CAAC,kBAAkB;IAO1B,OAAO,CAAC,mBAAmB;IAc3B,OAAO,IAAI,IAAI;CAIhB"}

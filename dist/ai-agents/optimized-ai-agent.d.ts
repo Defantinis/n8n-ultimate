@@ -44,6 +44,10 @@ export declare class OptimizedAIAgent extends EventEmitter {
     private metrics;
     constructor(config?: OptimizedAIConfig);
     /**
+     * Orchestrates the full workflow generation process from a simple description.
+     */
+    generateWorkflow(description: string): Promise<WorkflowPlan | null>;
+    /**
      * Analyze requirements with streaming response
      */
     analyzeRequirementsStreaming(requirements: WorkflowRequirements): Promise<AsyncGenerator<Partial<RequirementAnalysis>, RequirementAnalysis, unknown>>;
@@ -118,5 +122,6 @@ export declare class OptimizedAIAgent extends EventEmitter {
      * Setup event handlers for monitoring
      */
     private setupEventHandlers;
+    private setupFeedbackListener;
 }
 //# sourceMappingURL=optimized-ai-agent.d.ts.map

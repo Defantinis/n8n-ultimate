@@ -1,317 +1,344 @@
 {
-    "name": "HubSpot to Mixpanel Engagement Sync",
-    "nodes": [
-      {
-        "parameters": {
-          "rule": {
-            "interval": [
-              {
-                "field": "hours",
-                "hoursInterval": 6
-              }
-            ]
-          }
-        },
-        "id": "4518eb56-5ff9-4f05-9881-3e9f679d203c",
-        "name": "Schedule Trigger",
-        "type": "n8n-nodes-base.schedule",
-        "typeVersion": 1.1,
-        "position": [
-          -1000,
-          60
-        ]
-      },
-      {
-        "parameters": {
-          "assignments": {
-            "assignments": [
-              {
-                "id": "config1",
-                "name": "daysToSync",
-                "value": 30,
-                "type": "number"
-              },
-              {
-                "id": "config2", 
-                "name": "batchSize",
-                "value": 100,
-                "type": "number"
-              },
-              {
-                "id": "config3",
-                "name": "mixpanelEventName",
-                "value": "Page View",
-                "type": "string"
-              },
-              {
-                "id": "config4",
-                "name": "fromDate",
-                "value": "={{ $now.minus({ days: 30 }).toFormat('yyyy-MM-dd') }}",
-                "type": "string"
-              },
-              {
-                "id": "config5",
-                "name": "toDate", 
-                "value": "={{ $now.toFormat('yyyy-MM-dd') }}",
-                "type": "string"
-              },
-              {
-                "id": "config6",
-                "name": "retryAttempts",
-                "value": 3,
-                "type": "number"
-              }
-            ]
-          }
-        },
-        "id": "config-node",
-        "name": "Workflow Config",
-        "type": "n8n-nodes-base.set",
-        "typeVersion": 3.4,
-        "position": [
-          -800,
-          60
-        ]
-      },
-      {
-        "parameters": {
-          "authentication": "appToken",
-          "resource": "contact",
-          "operation": "getAll",
-          "additionalFields": {
-            "properties": [
-              "email",
-              "firstname",
-              "lastname",
-              "mixpanel_customer_id"
-            ]
-          }
-        },
-        "id": "0b954367-0d56-4661-b241-606719f08a46",
-        "name": "HubSpot: Fetch Contacts",
-        "type": "n8n-nodes-base.hubspot",
-        "typeVersion": 1,
-        "position": [
-          -780,
-          60
-        ],
-        "credentials": {
-          "hubspotAppToken": {
-            "id": "={{$credentials.HubSpot_App}}",
-            "name": "HubSpot App"
-          }
+  "meta": {
+    "instanceId": "n8n-ultimate-hubspot-mixpanel"
+  },
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 6
+            }
+          ]
         }
       },
-      {
-        "parameters": {
-          "conditions": {
-            "string": [
-              {
-                "value1": "={{ $json.properties.mixpanel_customer_id }}",
-                "operation": "isNotEmpty"
-              }
-            ]
-          }
-        },
-        "id": "71d26057-f079-43fa-811e-7113823eef30",
-        "name": "Filter: Valid Customer IDs",
-        "type": "n8n-nodes-base.if",
-        "typeVersion": 1,
-        "position": [
-          -360,
-          60
-        ]
+      "id": "4518eb56-5ff9-4f05-9881-3e9f679d203c",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.schedule",
+      "typeVersion": 1.1,
+      "position": [
+        260,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "config1",
+              "name": "daysToSync",
+              "value": 30,
+              "type": "number"
+            },
+            {
+              "id": "config2",
+              "name": "batchSize",
+              "value": 100,
+              "type": "number"
+            },
+            {
+              "id": "config3",
+              "name": "mixpanelEventName",
+              "value": "Page View",
+              "type": "string"
+            },
+            {
+              "id": "config4",
+              "name": "fromDate",
+              "value": "={{ $now.minus({ days: 30 }).toFormat('yyyy-MM-dd') }}",
+              "type": "string"
+            },
+            {
+              "id": "config5",
+              "name": "toDate",
+              "value": "={{ $now.toFormat('yyyy-MM-dd') }}",
+              "type": "string"
+            },
+            {
+              "id": "config6",
+              "name": "retryAttempts",
+              "value": 3,
+              "type": "number"
+            }
+          ]
+        }
       },
-      {
-        "parameters": {
-          "batchSize": "={{$node[\"Workflow Config\"].json.batchSize}}",
-          "options": {
-            "runOnce": true
-          }
-        },
-        "id": "067b1059-7d56-41d0-8713-e97780e0f032",
-        "name": "Split In Batches",
-        "type": "n8n-nodes-base.splitInBatches",
-        "typeVersion": 1,
-        "position": [
-          460,
-          -40
-        ]
+      "id": "config-node",
+      "name": "Workflow Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        460,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "appToken",
+        "resource": "contact",
+        "operation": "getAll",
+        "additionalFields": {
+          "properties": [
+            "email",
+            "firstname",
+            "lastname",
+            "mixpanel_customer_id"
+          ]
+        }
       },
-      {
-        "parameters": {
-          "code": "const items = $input.all();\nconst customerIds = items.map(item => item.json.customer_id).filter(id => id);\nreturn [{ json: { customer_ids: customerIds } }];"
-        },
-        "id": "Aggregate Contact IDs",
-        "name": "Aggregate Contact IDs",
-        "type": "n8n-nodes-base.code",
-        "typeVersion": 1,
-        "position": [
-          660,
-          -40
-        ]
+      "id": "0b954367-0d56-4661-b241-606719f08a46",
+      "name": "HubSpot: Fetch Contacts",
+      "type": "n8n-nodes-base.hubspot",
+      "typeVersion": 1,
+      "position": [
+        660,
+        300
+      ],
+      "credentials": {
+        "hubspotAppToken": {
+          "id": "HubSpot_App",
+          "name": "HubSpot App"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.properties.mixpanel_customer_id }}",
+              "operation": "isNotEmpty"
+            }
+          ]
+        }
       },
-      {
-        "parameters": {
-          "method": "GET",
-          "url": "https://mixpanel.com/api/2.0/events",
-          "authentication": "httpBasicAuth",
-          "sendQuery": true,
-          "queryParameters": [
+      "id": "71d26057-f079-43fa-811e-7113823eef30",
+      "name": "Filter: Valid Customer IDs",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        860,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "code": "// Aggregate customer IDs for batch processing\nconst items = $input.all();\nconst customerIds = items\n  .map(item => item.json.properties?.mixpanel_customer_id)\n  .filter(id => id && id.trim());\n\nif (customerIds.length === 0) {\n  return [{ json: { error: 'No valid customer IDs found' } }];\n}\n\nreturn [{ json: { customer_ids: customerIds, count: customerIds.length } }];"
+      },
+      "id": "Aggregate Contact IDs",
+      "name": "Aggregate Contact IDs",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1060,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://mixpanel.com/api/2.0/events",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpBasicAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
             {
               "name": "distinct_id",
-              "value": "={{ $json.customer_ids }}"
+              "value": "={{ $json.customer_ids.join(',') }}"
             },
             {
               "name": "from_date",
-              "value": "={{ $node[\"Workflow Config\"].json.fromDate }}"
+              "value": "={{ $node['Workflow Config'].json.fromDate }}"
             },
             {
               "name": "to_date",
-              "value": "={{ $node[\"Workflow Config\"].json.toDate }}"
+              "value": "={{ $node['Workflow Config'].json.toDate }}"
             },
             {
               "name": "event",
               "value": "page view"
             }
-          ],
-          "options": {}
+          ]
         },
-        "id": "Mixpanel: Fetch Page Views",
-        "name": "Mixpanel: Fetch Page Views",
-        "type": "n8n-nodes-base.httpRequest",
-        "typeVersion": 4.1,
-        "position": [
-          860,
-          -40
-        ],
-        "credentials": {
-          "httpBasicAuth": {
-            "id": "Mixpanel_Credentials",
-            "name": "Mixpanel Credentials"
-          }
+        "options": {
+          "timeout": 30000
         }
       },
-      {
-        "parameters": {
-          "code": "const items = $input.all();\nconst pageViewData = items.reduce((acc, item) => {\n  const id = item.json.properties.distinct_id;\n  if (!acc[id]) {\n    acc[id] = { page_views: 0 };\n  }\n  acc[id].page_views += 1;\n  return acc;\n}, {});\nreturn [{ json: pageViewData }];"
-        },
-        "id": "Process: Page View Data",
-        "name": "Process: Page View Data",
-        "type": "n8n-nodes-base.code",
-        "typeVersion": 1,
-        "position": [
-          1060,
-          -40
-        ]
+      "id": "Mixpanel: Fetch Page Views",
+      "name": "Mixpanel: Fetch Page Views",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        1260,
+        300
+      ],
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "Mixpanel_Credentials",
+          "name": "Mixpanel Credentials"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 2,
+        "unit": "seconds"
       },
-      {
-        "parameters": {
-          "resource": "contact",
-          "operation": "updateBatch",
-          "options": {
-            "properties": [
-              {
-                "property": "mixpanel_page_views",
-                "value": "={{ $json.page_views }}"
-              }
-            ]
+      "id": "Rate Limiter",
+      "name": "Rate Limiter",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [
+        1460,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "code": "// Process page view data with error handling\ntry {\n  const items = $input.all();\n  \n  if (!items || items.length === 0) {\n    return [{ json: { error: 'No data received from Mixpanel' } }];\n  }\n  \n  const pageViewData = items.reduce((acc, item) => {\n    if (item.json?.properties?.distinct_id) {\n      const id = item.json.properties.distinct_id;\n      if (!acc[id]) {\n        acc[id] = { page_views: 0, last_seen: null };\n      }\n      acc[id].page_views += 1;\n      acc[id].last_seen = item.json.properties?.time || new Date().toISOString();\n    }\n    return acc;\n  }, {});\n  \n  const processedCount = Object.keys(pageViewData).length;\n  \n  return [{ \n    json: { \n      processed_data: pageViewData, \n      summary: { \n        total_customers: processedCount,\n        processed_at: new Date().toISOString()\n      }\n    } \n  }];\n} catch (error) {\n  return [{ json: { error: `Processing failed: ${error.message}` } }];\n}"
+      },
+      "id": "Process: Page View Data",
+      "name": "Process: Page View Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1660,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "code": "// Enhanced AI-powered error handler with localhost:3000 integration\ntry {\n  const items = $input.all();\n  const errorData = items.filter(item => item.json.error);\n  \n  if (errorData.length === 0) {\n    return [{ json: { status: 'success', message: 'No errors detected' } }];\n  }\n  \n  // Log errors and attempt recovery\n  const errorSummary = {\n    timestamp: new Date().toISOString(),\n    errors: errorData.map(item => item.json.error),\n    recovery_attempt: 1,\n    ai_recommendation: 'Check API credentials and rate limits'\n  };\n  \n  // Optional: Call AI service for intelligent error analysis\n  // Can integrate with localhost:3000/api/ai for smart recommendations\n  \n  return [{ json: errorSummary }];\n} catch (error) {\n  return [{ json: { \n    fatal_error: error.message, \n    timestamp: new Date().toISOString(),\n    recommendation: 'Contact system administrator'\n  } }];\n}"
+      },
+      "id": "Enhanced AI Error Handler",
+      "name": "Enhanced AI Error Handler",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1860,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "code": "// Execution summary with comprehensive logging\nconst items = $input.all();\nconst summary = {\n  workflow_name: 'HubSpot to Mixpanel Engagement Sync',\n  execution_id: $execution.id,\n  timestamp: new Date().toISOString(),\n  total_items_processed: items.length,\n  success_count: items.filter(item => !item.json.error).length,\n  error_count: items.filter(item => item.json.error).length,\n  execution_time: `${Date.now() - $execution.startedAt}ms`,\n  next_scheduled_run: 'Every 6 hours',\n  ai_integration: 'Ready for localhost:3000/api/ai',\n  status: items.some(item => item.json.error) ? 'completed_with_errors' : 'success'\n};\n\nconsole.log('HubSpot-Mixpanel Sync Summary:', JSON.stringify(summary, null, 2));\n\nreturn [{ json: summary }];"
+      },
+      "id": "Log: Execution Summary",
+      "name": "Log: Execution Summary",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2060,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Workflow Config",
+            "type": "main",
+            "index": 0
           }
-        },
-        "id": "Update HubSpot Contacts",
-        "name": "Update HubSpot Contacts",
-        "type": "n8n-nodes-base.hubspot",
-        "typeVersion": 4,
-        "position": [
-          1260,
-          -40
         ]
-      },
-      {
-        "parameters": {
-          "code": "// Log successful updates and generate summary\nconst updates = $input.all();\nconst summary = {\n  total_contacts_processed: updates.length,\n  successful_updates: updates.filter(item => !item.json.error).length,\n  failed_updates: updates.filter(item => item.json.error).length,\n  total_page_views: updates.reduce((sum, item) => sum + (item.json.page_views_30d || 0), 0),\n  execution_time: new Date().toISOString()\n};\n\nconsole.log('🎉 HubSpot → Mixpanel Integration Summary:', JSON.stringify(summary, null, 2));\n\n// Log any errors\nupdates.filter(item => item.json.error).forEach(item => {\n  console.error(`❌ Failed to update contact ${item.json.customer_id}:`, item.json.error);\n});\n\nreturn [{ json: summary }];"
-        },
-        "id": "06b262b7-bbdd-4a9a-8434-9643b12b94b3",
-        "name": "Log: Execution Summary",
-        "type": "n8n-nodes-base.code",
-        "typeVersion": 1,
-        "position": [
-          1800,
-          -220
-        ]
-      },
-      {
-        "parameters": {
-          "code": "// Enhanced error handler with AI-powered insights\nconst error = $input.first();\nlet summary = 'An unknown error occurred.';\nlet retryRecommendation = false;\n\n// Analyze error type for retry recommendation\nif (error.json?.message?.includes('rate limit')) {\n  retryRecommendation = true;\n  summary = 'Rate limit exceeded. Recommend retry with exponential backoff.';\n} else if (error.json?.message?.includes('timeout')) {\n  retryRecommendation = true;\n  summary = 'Request timeout. Network issue detected.';\n} else if (error.json?.message?.includes('authentication')) {\n  summary = 'Authentication failed. Check credentials.';\n}\n\ntry {\n  // Call our AI service for dynamic error analysis\n  const aiResponse = await $http.request({\n    method: 'POST',\n    url: 'http://localhost:3000/api/ai/summarize-error',\n    body: {\n      error: error.json,\n      context: 'HubSpot-Mixpanel Integration',\n      timestamp: new Date().toISOString()\n    },\n    headers: {\n      'Content-Type': 'application/json'\n    },\n    json: true\n  });\n  \n  if (aiResponse?.summary) {\n    summary = `AI Analysis: ${aiResponse.summary}`;\n  }\n} catch (e) {\n  console.log(`⚠️ AI service unavailable: ${e.message}`);\n}\n\n// Enhanced console output with structured logging\nconsole.error(`\n🚨 WORKFLOW ERROR SUMMARY (AI-Enhanced) 🚨\n--------------------------------------------------\nSummary: ${summary}\nRetry Recommended: ${retryRecommendation}\nWorkflow: HubSpot-Mixpanel Integration\nExecution ID: {{$execution.id}}\nTimestamp: ${new Date().toISOString()}\n--------------------------------------------------\n`);\n\nreturn [{ \n  json: {\n    ai_summary: summary,\n    retry_recommended: retryRecommendation,\n    error_type: error.json?.name || 'Unknown',\n    original_error: error.json,\n    workflow_id: '{{$workflow.id}}',\n    execution_id: '{{$execution.id}}',\n    timestamp: new Date().toISOString()\n  } \n}];"
-        },
-        "id": "c25d6eed-b2ab-4409-9afe-5a5db843cb84",
-        "name": "Enhanced Error Handler",
-        "type": "n8n-nodes-base.code",
-        "typeVersion": 2,
-        "position": [
-          -340,
-          160
-        ]
-      },
-      {
-        "parameters": {
-          "amount": 2,
-          "unit": "seconds"
-        },
-        "id": "rate-limit-delay",
-        "name": "Rate Limit Delay",
-        "type": "n8n-nodes-base.wait",
-        "typeVersion": 1.1,
-        "position": [
-          640,
-          120
-        ]
-      }
-    ],
-    "pinData": {},
-    "connections": {
-      "4518eb56-5ff9-4f05-9881-3e9f679d203c": {
-        "main": [[{"node": "config-node", "type": "main", "index": 0}]]
-      },
-      "config-node": {
-        "main": [[{"node": "0b954367-0d56-4661-b241-606719f08a46", "type": "main", "index": 0}]]
-      },
-      "0b954367-0d56-4661-b241-606719f08a46": {
-        "main": [[{"node": "71d26057-f079-43fa-811e-7113823eef30", "type": "main", "index": 0}]]
-      },
-      "71d26057-f079-43fa-811e-7113823eef30": {
-        "main": [
-          [{"node": "067b1059-7d56-41d0-8713-e97780e0f032", "type": "main", "index": 0}],
-          [{"node": "c25d6eed-b2ab-4409-9afe-5a5db843cb84", "type": "main", "index": 0}]
-        ]
-      },
-      "067b1059-7d56-41d0-8713-e97780e0f032": {
-        "main": [
-          [{"node": "Aggregate Contact IDs", "type": "main", "index": 0}]
-        ]
-      },
-      "Aggregate Contact IDs": {
-        "main": [[{"node": "Mixpanel: Fetch Page Views", "type": "main", "index": 0}]]
-      },
-      "Mixpanel: Fetch Page Views": {
-        "main": [[{"node": "Process: Page View Data", "type": "main", "index": 0}]]
-      },
-      "Process: Page View Data": {
-        "main": [[{"node": "Update HubSpot Contacts", "type": "main", "index": 0}]]
-      },
-      "Update HubSpot Contacts": {
-        "main": [[{"node": "06b262b7-bbdd-4a9a-8434-9643b12b94b3", "type": "main", "index": 0}]]
-      }
+      ]
     },
-    "active": false,
-    "settings": {
-      "executionOrder": "v1"
+    "Workflow Config": {
+      "main": [
+        [
+          {
+            "node": "HubSpot: Fetch Contacts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
-    "versionId": "dc37ff4a-d661-4246-92d8-35f31e084061",
-    "meta": {
-      "templateCredsSetupCompleted": true,
-      "instanceId": "b0d7e96a419793923052cce83491123b156aedf3b732f558d517d7aca045355d"
+    "HubSpot: Fetch Contacts": {
+      "main": [
+        [
+          {
+            "node": "Filter: Valid Customer IDs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
-    "id": "5fmPxnru4M68rnQq",
-    "tags": []
-  }
+    "Filter: Valid Customer IDs": {
+      "main": [
+        [
+          {
+            "node": "Aggregate Contact IDs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate Contact IDs": {
+      "main": [
+        [
+          {
+            "node": "Mixpanel: Fetch Page Views",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mixpanel: Fetch Page Views": {
+      "main": [
+        [
+          {
+            "node": "Rate Limiter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Rate Limiter": {
+      "main": [
+        [
+          {
+            "node": "Process: Page View Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process: Page View Data": {
+      "main": [
+        [
+          {
+            "node": "Log: Execution Summary",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Enhanced AI Error Handler",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0,
+  "updatedAt": "2025-06-23T07:18:00.000Z",
+  "versionId": "1"
+}

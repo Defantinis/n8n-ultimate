@@ -1,0 +1,1 @@
+{"version":3,"file":"workspace-switcher.d.ts","sourceRoot":"","sources":["../../../src/dashboard/collaboration/workspace-switcher.ts"],"names":[],"mappings":"AAAA;;;;GAIG;AAoBH,qBAAa,iBAAiB;IAC1B,OAAO,CAAC,OAAO,CAAc;IAC7B,OAAO,CAAC,aAAa,CAAS;gBAElB,SAAS,EAAE,WAAW,EAAE,aAAa,EAAE,MAAM;YAS3C,MAAM;IA+BpB,OAAO,CAAC,qBAAqB;CAWhC"}

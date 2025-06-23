@@ -75,11 +75,14 @@ export declare class N8nUltimateDashboard {
     private config;
     private rootElement;
     private currentComponent;
+    private commandPalette;
     constructor(config: DashboardConfig, rootElement: HTMLElement);
+    private initializeDashboard;
     /**
      * Initialize accessibility features based on user preferences
      */
     private initializeAccessibility;
+    private listenForIntents;
     /**
      * Get navigation items filtered by user level and availability
      */
@@ -89,15 +92,16 @@ export declare class N8nUltimateDashboard {
      */
     private isFeatureAccessible;
     /**
-     * Navigate to a specific dashboard section.
-     * This is the primary method for changing views.
+     * Navigate to a specific section of the dashboard
      */
     navigateTo(sectionId: string): void;
     /**
-     * Handle user interaction and route to appropriate feature
+     * Handle user input, potentially routing to the AI agent
      */
     handleUserInput(input: string, context?: any): Promise<any>;
     private showGettingStarted;
+    dispose(): void;
+    private renderCollaborationSection;
 }
 export default N8nUltimateDashboard;
 //# sourceMappingURL=index.d.ts.map

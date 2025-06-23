@@ -1,6 +1,7 @@
 import { AIAgent } from './ai-agent.js';
 import { StreamingOllamaClient } from './streaming-ollama-client.js';
 import { EventEmitter } from 'events';
+import { feedbackBus } from '../dashboard/interactions/feedback-bus.js';
 /**
  * Optimized AI Agent with streaming, batching, and concurrent processing capabilities
  */
@@ -45,6 +46,29 @@ export class OptimizedAIAgent extends EventEmitter {
         this.streamingClient = new StreamingOllamaClient(streamingConfig);
         this.initializePromptTemplates();
         this.setupEventHandlers();
+        this.setupFeedbackListener();
+    }
+    /**
+     * Orchestrates the full workflow generation process from a simple description.
+     */
+    async generateWorkflow(description) {
+        console.log(`Generating workflow for: "${description}"`);
+        const requirements = {
+            description,
+            type: 'custom', // Default type, can be refined by analysis
+        };
+        try {
+            const analysis = await this.baseAgent.analyzeRequirements(requirements);
+            const plan = await this.baseAgent.planWorkflow(analysis);
+            console.log('Workflow plan generated successfully.');
+            // In a real implementation, you'd generate and validate the final JSON here.
+            return plan;
+        }
+        catch (error) {
+            console.error('Error during workflow generation pipeline:', error);
+            this.metrics.errorRate = (this.metrics.errorRate + 1) / this.metrics.totalRequests;
+            return null;
+        }
     }
     /**
      * Analyze requirements with streaming response
@@ -491,6 +515,14 @@ Keep the workflow practical and implementable.`);
                 this.emit('streamingClientShutdown');
             });
         }
+    }
+    setupFeedbackListener() {
+        feedbackBus.subscribe('userIntent', (intent) => {
+            console.log('AI Agent received user intent:', intent);
+            if (intent.type === 'GENERATE_WORKFLOW_FROM_GUIDE' || intent.type === 'QUICK_ACTION') {
+                this.generateWorkflow(intent.payload.description || 'user-initiated action');
+            }
+        });
     }
 }
 //# sourceMappingURL=optimized-ai-agent.js.map

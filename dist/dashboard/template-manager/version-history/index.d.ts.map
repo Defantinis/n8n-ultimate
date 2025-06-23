@@ -1,0 +1,1 @@
+{"version":3,"file":"index.d.ts","sourceRoot":"","sources":["../../../../src/dashboard/template-manager/version-history/index.ts"],"names":[],"mappings":"AAEA,qBAAa,uBAAuB;IAClC,OAAO,CAAC,OAAO,CAAc;IAC7B,OAAO,CAAC,eAAe,CAAkB;IACzC,OAAO,CAAC,YAAY,CAAS;gBAEjB,SAAS,EAAE,WAAW,EAAE,YAAY,EAAE,MAAM;YAW1C,MAAM;IAqBpB,OAAO,CAAC,kBAAkB;IAa1B,OAAO,CAAC,oBAAoB;IAK5B,OAAO,IAAI,IAAI;CAGhB"}

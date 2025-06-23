@@ -3,7 +3,7 @@ import { StreamingOllamaClient, StreamingConfig, StreamingRequest } from './stre
 import { WorkflowPlan, NodeSpecification } from '../types/n8n-workflow.js';
 import { N8nWorkflow, N8nNode } from '../types/n8n-workflow.js';
 import { EventEmitter } from 'events';
-import { feedbackBus } from '../dashboard/interactions/feedback-bus';
+import { feedbackBus } from '../dashboard/interactions/feedback-bus.js';
 
 export interface OptimizedAIConfig {
   ollamaBaseUrl?: string;

@@ -179,13 +179,34 @@ mcp_task-master-ai_get_task --id=<last-active-task>
 ## **Tool Integration Priority Order**
 
 1.  **Task Master (Primary)**: For systematic task and progress management.
-2.  **Internal Validation & Analysis Suite (`src/validators`, `src/utils`)**: Before any manual analysis, use `WorkflowValidator`, `DataFlowValidator`, and `NodeAnalyzer` to programmatically identify issues.
-3.  **AI-Powered Generation & Enhancement (`src/generators`, `src/ai-agents`)**: Use `WorkflowGenerator` and `OptimizedAIAgent` for creating and enhancing workflows, not just manual creation.
-4.  **Automated Error Handling (`src/error-handling`)**: Integrate `ErrorClassifier` and `ErrorRecoveryManager` into workflows instead of writing ad-hoc error logic.
-5.  **Performance Tooling (`src/performance`)**: Use `PerformanceMonitor` and `IntelligentCacheManager` for optimization tasks.
-6.  **Real-World Testing Framework (`src/testing`)**: Use the `RealWorldTestingFramework` for all verification steps.
-7.  **AI Research (Secondary)**: Use for external knowledge gathering when internal tools lack context.
-8.  **Manual Code Analysis (Fallback)**: Use `codebase_search` and manual file reading only when automated tools are insufficient.
+2.  **Internal Validation & Analysis Suite (`src/validators`, `src/utils`, `src/validation`)**: Before any manual analysis, use our full validation suite:
+    -   `WorkflowValidator`, `DataFlowValidator`, `ConnectionValidator`: For structural and data flow integrity.
+    -   `ErrorHandlingValidator`: To ensure robust error handling is in place.
+    -   `NodeCompatibilityValidator`, `PerformanceValidator`: For node-specific and performance checks.
+    -   `NodeAnalyzer`: To understand node dependencies and relationships.
+3.  **Skeleton Analysis & Enhancement (`src/skeleton-analyzer.ts`, `src/skeleton-enhancer.ts`)**:
+    -   `SkeletonAnalyzer`: For deconstructing and understanding existing workflows.
+    -   `SkeletonEnhancer`: To apply learned patterns and improvements to new or existing skeletons.
+4.  **AI-Powered Generation & Enhancement (`src/generators`, `src/ai-agents`)**:
+    -   `WorkflowGenerator` and `OptimizedAIAgent`: For creating and enhancing workflows.
+    -   `AIAgent` (`src/ai-agents/ai-agent.ts`): To be used for more complex, multi-step generation tasks that require conversational context.
+5.  **Automated Error Handling (`src/error-handling`)**:
+    -   `ErrorClassifier`, `ErrorRecoveryManager`: For classifying and managing errors.
+    -   `AdaptiveErrorCollector`: To dynamically gather context around failures.
+    -   `PerformanceAwareErrorHandler`: To handle performance-related errors gracefully.
+6.  **Performance Tooling (`src/performance`)**:
+    -   `PerformanceMonitor`, `IntelligentCacheManager`: For optimization tasks.
+    -   `DatabaseIoOptimizer`, `MemoryManager`: For resource-specific optimizations.
+    -   `DatadogPerformanceConnector`: To pipe performance data to external monitoring services.
+7.  **Real-World & Learning-Based Testing (`src/testing`)**:
+    -   `RealWorldTestingFramework`: For all verification steps.
+    -   `ComprehensiveLearningTestingFramework`: To validate that the system learns from new data and patterns correctly.
+    -   `ErrorTestingFramework`: To test error scenarios and boundary conditions.
+8.  **Knowledge Management (`src/integration`, `src/community`)**:
+    -   `KnowledgeManagementSystem`: To store and retrieve learnings.
+    -   `CommunityNodeValidator`: To validate and integrate community nodes safely.
+9.  **AI Research (Secondary)**: Use for external knowledge gathering when internal tools lack context.
+10. **Manual Code Analysis (Fallback)**: Use `codebase_search` and manual file reading only when automated tools are insufficient.
 
 ## **Emergency Patterns**
 

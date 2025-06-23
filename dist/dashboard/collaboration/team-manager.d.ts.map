@@ -1,0 +1,1 @@
+{"version":3,"file":"team-manager.d.ts","sourceRoot":"","sources":["../../../src/dashboard/collaboration/team-manager.ts"],"names":[],"mappings":"AAAA;;GAEG;AAgCH,qBAAa,WAAW;IACpB,OAAO,CAAC,OAAO,CAAc;IAC7B,OAAO,CAAC,kBAAkB,CAAS;IACnC,OAAO,CAAC,aAAa,CAAS;gBAElB,SAAS,EAAE,WAAW,EAAE,WAAW,EAAE,MAAM,EAAE,MAAM,EAAE,MAAM;YAkBzD,MAAM;IA8BpB,OAAO,CAAC,gBAAgB;YA4BV,YAAY;CAkB7B"}
