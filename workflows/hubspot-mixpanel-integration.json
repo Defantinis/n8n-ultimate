@@ -2,11 +2,20 @@
     "name": "HubSpot to Mixpanel Engagement Sync",
     "nodes": [
       {
-        "parameters": {},
+        "parameters": {
+          "rule": {
+            "interval": [
+              {
+                "field": "hours",
+                "hoursInterval": 6
+              }
+            ]
+          }
+        },
         "id": "4518eb56-5ff9-4f05-9881-3e9f679d203c",
         "name": "Schedule Trigger",
-        "type": "n8n-nodes-base.cron",
-        "typeVersion": 1,
+        "type": "n8n-nodes-base.schedule",
+        "typeVersion": 1.1,
         "position": [
           -1000,
           60
@@ -14,12 +23,51 @@
       },
       {
         "parameters": {
-          "jsCode": "return {\n  json: {\n    daysToSync: 30,\n    batchSize: 100,\n    mixpanelEventName: 'Page View',\n    fromDate: $now.minus({ days: 30 }).toFormat('yyyy-MM-dd'),\n    toDate: $now.toFormat('yyyy-MM-dd')\n  }\n};"
+          "assignments": {
+            "assignments": [
+              {
+                "id": "config1",
+                "name": "daysToSync",
+                "value": 30,
+                "type": "number"
+              },
+              {
+                "id": "config2", 
+                "name": "batchSize",
+                "value": 100,
+                "type": "number"
+              },
+              {
+                "id": "config3",
+                "name": "mixpanelEventName",
+                "value": "Page View",
+                "type": "string"
+              },
+              {
+                "id": "config4",
+                "name": "fromDate",
+                "value": "={{ $now.minus({ days: 30 }).toFormat('yyyy-MM-dd') }}",
+                "type": "string"
+              },
+              {
+                "id": "config5",
+                "name": "toDate", 
+                "value": "={{ $now.toFormat('yyyy-MM-dd') }}",
+                "type": "string"
+              },
+              {
+                "id": "config6",
+                "name": "retryAttempts",
+                "value": 3,
+                "type": "number"
+              }
+            ]
+          }
         },
         "id": "config-node",
         "name": "Workflow Config",
-        "type": "n8n-nodes-base.code",
-        "typeVersion": 1,
+        "type": "n8n-nodes-base.set",
+        "typeVersion": 3.4,
         "position": [
           -800,
           60
@@ -92,7 +140,7 @@
       },
       {
         "parameters": {
-          "jsCode": "const items = $input.all();\nconst customerIds = items.map(item => item.json.customer_id).filter(id => id);\nreturn [{ json: { customer_ids: customerIds } }];"
+          "code": "const items = $input.all();\nconst customerIds = items.map(item => item.json.customer_id).filter(id => id);\nreturn [{ json: { customer_ids: customerIds } }];"
         },
         "id": "Aggregate Contact IDs",
         "name": "Aggregate Contact IDs",
@@ -146,7 +194,7 @@
       },
       {
         "parameters": {
-          "jsCode": "const items = $input.all();\nconst pageViewData = items.reduce((acc, item) => {\n  const id = item.json.properties.distinct_id;\n  if (!acc[id]) {\n    acc[id] = { page_views: 0 };\n  }\n  acc[id].page_views += 1;\n  return acc;\n}, {});\nreturn [{ json: pageViewData }];"
+          "code": "const items = $input.all();\nconst pageViewData = items.reduce((acc, item) => {\n  const id = item.json.properties.distinct_id;\n  if (!acc[id]) {\n    acc[id] = { page_views: 0 };\n  }\n  acc[id].page_views += 1;\n  return acc;\n}, {});\nreturn [{ json: pageViewData }];"
         },
         "id": "Process: Page View Data",
         "name": "Process: Page View Data",
@@ -181,7 +229,7 @@
       },
       {
         "parameters": {
-          "jsCode": "// Log successful updates and generate summary\nconst updates = $input.all();\nconst summary = {\n  total_contacts_processed: updates.length,\n  successful_updates: updates.filter(item => !item.json.error).length,\n  failed_updates: updates.filter(item => item.json.error).length,\n  total_page_views: updates.reduce((sum, item) => sum + (item.json.page_views_30d || 0), 0),\n  execution_time: new Date().toISOString()\n};\n\nconsole.log('🎉 HubSpot → Mixpanel Integration Summary:', JSON.stringify(summary, null, 2));\n\n// Log any errors\nupdates.filter(item => item.json.error).forEach(item => {\n  console.error(`❌ Failed to update contact ${item.json.customer_id}:`, item.json.error);\n});\n\nreturn [{ json: summary }];"
+          "code": "// Log successful updates and generate summary\nconst updates = $input.all();\nconst summary = {\n  total_contacts_processed: updates.length,\n  successful_updates: updates.filter(item => !item.json.error).length,\n  failed_updates: updates.filter(item => item.json.error).length,\n  total_page_views: updates.reduce((sum, item) => sum + (item.json.page_views_30d || 0), 0),\n  execution_time: new Date().toISOString()\n};\n\nconsole.log('🎉 HubSpot → Mixpanel Integration Summary:', JSON.stringify(summary, null, 2));\n\n// Log any errors\nupdates.filter(item => item.json.error).forEach(item => {\n  console.error(`❌ Failed to update contact ${item.json.customer_id}:`, item.json.error);\n});\n\nreturn [{ json: summary }];"
         },
         "id": "06b262b7-bbdd-4a9a-8434-9643b12b94b3",
         "name": "Log: Execution Summary",
@@ -194,36 +242,50 @@
       },
       {
         "parameters": {
-          "jsCode": "const error = $input.first();\nlet summary = 'An unknown error occurred.';\n\ntry {\n  // Call the local AI service to get a dynamic summary\n  const aiResponse = await $http.request({\n    method: 'POST',\n    url: 'http://localhost:5678/api/ai/summarize-error', // Assuming default n8n API port\n    body: error.json,\n    headers: {\n      'Content-Type': 'application/json'\n    },\n    json: true // Automatically parse the response\n  });\n  summary = aiResponse.summary;\n} catch (e) {\n  // Fallback if the AI service is down or fails\n  summary = `AI summarization failed: ${e.message}. Raw error: ${JSON.stringify(error.error || error.json)}`;\n}\n\n// More readable console output\nconsole.error(`\n🚨 WORKFLOW ERROR SUMMARY (AI-Powered) 🚨\\n--------------------------------------------------\\n${summary}\\n--------------------------------------------------\\n`);\n\n// Return a structured error object for further processing if needed\nreturn [{ \n  json: {\n    ai_summary: summary,\n    original_error: error.json,\n    workflow_id: '{{$workflow.id}}',\n    execution_id: '{{$execution.id}}',\n    timestamp: new Date().toISOString()\n  } \n}];"
+          "code": "// Enhanced error handler with AI-powered insights\nconst error = $input.first();\nlet summary = 'An unknown error occurred.';\nlet retryRecommendation = false;\n\n// Analyze error type for retry recommendation\nif (error.json?.message?.includes('rate limit')) {\n  retryRecommendation = true;\n  summary = 'Rate limit exceeded. Recommend retry with exponential backoff.';\n} else if (error.json?.message?.includes('timeout')) {\n  retryRecommendation = true;\n  summary = 'Request timeout. Network issue detected.';\n} else if (error.json?.message?.includes('authentication')) {\n  summary = 'Authentication failed. Check credentials.';\n}\n\ntry {\n  // Call our AI service for dynamic error analysis\n  const aiResponse = await $http.request({\n    method: 'POST',\n    url: 'http://localhost:3000/api/ai/summarize-error',\n    body: {\n      error: error.json,\n      context: 'HubSpot-Mixpanel Integration',\n      timestamp: new Date().toISOString()\n    },\n    headers: {\n      'Content-Type': 'application/json'\n    },\n    json: true\n  });\n  \n  if (aiResponse?.summary) {\n    summary = `AI Analysis: ${aiResponse.summary}`;\n  }\n} catch (e) {\n  console.log(`⚠️ AI service unavailable: ${e.message}`);\n}\n\n// Enhanced console output with structured logging\nconsole.error(`\n🚨 WORKFLOW ERROR SUMMARY (AI-Enhanced) 🚨\n--------------------------------------------------\nSummary: ${summary}\nRetry Recommended: ${retryRecommendation}\nWorkflow: HubSpot-Mixpanel Integration\nExecution ID: {{$execution.id}}\nTimestamp: ${new Date().toISOString()}\n--------------------------------------------------\n`);\n\nreturn [{ \n  json: {\n    ai_summary: summary,\n    retry_recommended: retryRecommendation,\n    error_type: error.json?.name || 'Unknown',\n    original_error: error.json,\n    workflow_id: '{{$workflow.id}}',\n    execution_id: '{{$execution.id}}',\n    timestamp: new Date().toISOString()\n  } \n}];"
         },
         "id": "c25d6eed-b2ab-4409-9afe-5a5db843cb84",
-        "name": "Error Handler",
+        "name": "Enhanced Error Handler",
         "type": "n8n-nodes-base.code",
-        "typeVersion": 1,
+        "typeVersion": 2,
         "position": [
           -340,
           160
+        ]
+      },
+      {
+        "parameters": {
+          "amount": 2,
+          "unit": "seconds"
+        },
+        "id": "rate-limit-delay",
+        "name": "Rate Limit Delay",
+        "type": "n8n-nodes-base.wait",
+        "typeVersion": 1.1,
+        "position": [
+          640,
+          120
         ]
       }
     ],
     "pinData": {},
     "connections": {
-      "Schedule Trigger": {
-        "main": [[{"node": "Workflow Config", "type": "main", "index": 0}]]
+      "4518eb56-5ff9-4f05-9881-3e9f679d203c": {
+        "main": [[{"node": "config-node", "type": "main", "index": 0}]]
       },
-      "Workflow Config": {
-        "main": [[{"node": "HubSpot: Fetch Contacts", "type": "main", "index": 0}]]
+      "config-node": {
+        "main": [[{"node": "0b954367-0d56-4661-b241-606719f08a46", "type": "main", "index": 0}]]
       },
-      "HubSpot: Fetch Contacts": {
-        "main": [[{"node": "Filter: Valid Customer IDs", "type": "main", "index": 0}]]
+      "0b954367-0d56-4661-b241-606719f08a46": {
+        "main": [[{"node": "71d26057-f079-43fa-811e-7113823eef30", "type": "main", "index": 0}]]
       },
-      "Filter: Valid Customer IDs": {
+      "71d26057-f079-43fa-811e-7113823eef30": {
         "main": [
-          [{"node": "Split In Batches", "type": "main", "index": 0}],
-          [{"node": "Error Handler", "type": "main", "index": 0}]
+          [{"node": "067b1059-7d56-41d0-8713-e97780e0f032", "type": "main", "index": 0}],
+          [{"node": "c25d6eed-b2ab-4409-9afe-5a5db843cb84", "type": "main", "index": 0}]
         ]
       },
-      "Split In Batches": {
+      "067b1059-7d56-41d0-8713-e97780e0f032": {
         "main": [
           [{"node": "Aggregate Contact IDs", "type": "main", "index": 0}]
         ]
@@ -238,7 +300,7 @@
         "main": [[{"node": "Update HubSpot Contacts", "type": "main", "index": 0}]]
       },
       "Update HubSpot Contacts": {
-        "main": [[{"node": "Log: Execution Summary", "type": "main", "index": 0}]]
+        "main": [[{"node": "06b262b7-bbdd-4a9a-8434-9643b12b94b3", "type": "main", "index": 0}]]
       }
     },
     "active": false,
