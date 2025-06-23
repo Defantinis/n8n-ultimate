@@ -928,7 +928,7 @@
             "dependencies": [
               4
             ],
-            "details": "Perform end-to-end tests to verify that the entire workflow functions correctly from data fetching to AI-driven insights. Document the architecture, code changes, and any lessons learned during development for future reference.",
+            "details": "Perform end-to-end tests to verify that the entire workflow functions correctly from data fetching to AI-driven insights. Document the architecture, code changes, and any lessons learned during development for future reference.\n<info added on 2025-06-23T08:43:52.884Z>\nCapture comprehensive learnings from workflow linking analysis and AI integration testing sessions. Document key patterns including: 1) Discrepancies between n8n visual linking issues and actual JSON structure validity, 2) Patterns observed in the comprehensive testing framework, 3) Methods used for validating AI service integrations, 4) Effectiveness of a systematic 5-phase debugging approach, and 5) Integration of Task Master for handling complex demos.\n</info added on 2025-06-23T08:43:52.884Z>",
             "status": "done",
             "testStrategy": "Use integration testing frameworks to simulate real-world scenarios and ensure all components work together as expected."
           }
