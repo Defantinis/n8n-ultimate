@@ -1,0 +1,300 @@
+{
+  "name": "My workflow 2",
+  "nodes": [
+    {
+      "parameters": {
+        "jsCode": "// Calculate date range exactly like Make.com blueprint\nconst now = new Date();\n\n// First day of month 2 months ago (parseDate(formatDate(addMonths(now; -2); \"YYYY-MM\")-1; \"YYYY-MM-DD\"))\nconst twoMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 2, 1);\nconst fromDate = twoMonthsAgo.toISOString().split('T')[0];\n\n// Current date (formatDate(now; \"YYYY-MM-DD\"))\nconst toDate = now.toISOString().split('T')[0];\n\nreturn {\n  fromDate: fromDate,\n  toDate: toDate\n};"
+      },
+      "id": "34fa29bd-b46d-48fb-8e05-a6b7c7fa891e",
+      "name": "Config",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -760,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "appToken",
+        "resource": "contact",
+        "operation": "getAll",
+        "limit": 1,
+        "additionalFields": {
+          "properties": [
+            "email",
+            "firstname",
+            "lastname",
+            "mixpanel_customer_id"
+          ]
+        }
+      },
+      "id": "bd90babc-8c2c-4f1c-9b37-7f301483b026",
+      "name": "Get HubSpot Contacts",
+      "type": "n8n-nodes-base.hubspot",
+      "typeVersion": 1,
+      "position": [
+        -560,
+        80
+      ],
+      "credentials": {
+        "hubspotAppToken": {
+          "id": "vfKljeOowtXMQOtI",
+          "name": "HubSpot account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.properties.mixpanel_customer_id }}",
+              "operation": "isNotEmpty"
+            }
+          ]
+        }
+      },
+      "id": "f436de1e-61b2-4ce9-ad9c-763d2e862198",
+      "name": "Filter Valid Mixpanel IDs",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -400,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://eu.mixpanel.com/api/2.0/engage",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "project_id",
+              "value": "3126875"
+            },
+            {
+              "name": "selector",
+              "value": "={{'(properties[\\\"mixpanel_customer_id\\\"] == \\\"' + $json.properties.mixpanel_customer_id + '\\\")'}}"
+            }
+          ]
+        },
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 1,
+              "batchInterval": 2000
+            }
+          }
+        }
+      },
+      "id": "a1b2c3d4-e5f6-4a7b-8c9d-0f1e2d3c4b5a",
+      "name": "Get Mixpanel Profile",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        -160,
+        80
+      ],
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "GRbgePackzE8rwWp",
+          "name": "Mixpanel"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "https://data-eu.mixpanel.com/api/2.0/export",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "project_id",
+              "value": "3126875"
+            },
+            {
+              "name": "from_date",
+              "value": "={{ new Date(new Date().getFullYear(), new Date().getMonth() - 2, 1).toISOString().split('T')[0] }}"
+            },
+            {
+              "name": "to_date",
+              "value": "={{ new Date().toISOString().split('T')[0] }}"
+            },
+            {
+              "name": "event",
+              "value": "[\"Page viewed\"]"
+            },
+            {
+              "name": "where",
+              "value": "={{'properties[\\\"customer_id\\\"] == \\\"' + $('Get Mixpanel Profile').item.json.results[0].properties.mixpanel_customer_id + '\\\"'}}"
+            }
+          ]
+        },
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 1,
+              "batchInterval": 3000
+            }
+          }
+        }
+      },
+      "id": "6b71f02c-0a0b-4340-a33a-62873710b96f",
+      "name": "Get Mixpanel Events",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        40,
+        80
+      ],
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "GRbgePackzE8rwWp",
+          "name": "Mixpanel"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Process Mixpanel events data and prepare for HubSpot updates\nconst hubspotContact = $('Get HubSpot Contacts').item.json;\nconst mixpanelEvents = $input.all();\n\n// Calculate page view metrics from Mixpanel events\nlet totalPageViews = 0;\nlet uniquePages = new Set();\nlet lastViewDate = null;\n\n// Process each Mixpanel event response\nfor (const eventData of mixpanelEvents) {\n  if (eventData.json && typeof eventData.json === 'string') {\n    // Parse JSONL format from Mixpanel export\n    const lines = eventData.json.trim().split('\\n');\n    \n    for (const line of lines) {\n      if (line.trim()) {\n        try {\n          const event = JSON.parse(line);\n          if (event.event === 'Page viewed') {\n            totalPageViews++;\n            if (event.properties && event.properties.url) {\n              uniquePages.add(event.properties.url);\n            }\n            // Track most recent view date\n            if (event.properties && event.properties.time) {\n              const eventDate = new Date(event.properties.time * 1000);\n              if (!lastViewDate || eventDate > lastViewDate) {\n                lastViewDate = eventDate;\n              }\n            }\n          }\n        } catch (e) {\n          // Skip invalid JSON lines\n          continue;\n        }\n      }\n    }\n  }\n}\n\n// Prepare HubSpot update data\nconst updateData = {\n  contactId: hubspotContact.id,\n  properties: {\n    mixpanel_page_views: totalPageViews.toString(),\n    mixpanel_unique_pages: uniquePages.size.toString(),\n    mixpanel_last_activity: lastViewDate ? lastViewDate.toISOString().split('T')[0] : null,\n    mixpanel_sync_date: new Date().toISOString().split('T')[0]\n  }\n};\n\n// Return array of objects as required by n8n\nreturn [{\n  json: updateData\n}];"
+      },
+      "id": "53230913-66d9-4edc-a774-3a00353df9f6",
+      "name": "Prepare HubSpot Updates",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        280,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "appToken",
+        "resource": "contact",
+        "operation": "update"
+      },
+      "id": "2b36e488-5ce8-44a2-aa76-e2e6f14ef465",
+      "name": "Update HubSpot Contacts",
+      "type": "n8n-nodes-base.hubspot",
+      "typeVersion": 1,
+      "position": [
+        440,
+        80
+      ],
+      "credentials": {
+        "hubspotAppToken": {
+          "id": "vfKljeOowtXMQOtI",
+          "name": "HubSpot account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -960,
+        80
+      ],
+      "id": "e3dfc4ae-5498-4825-85b3-95423d761f2d",
+      "name": "Manual Trigger"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "Get HubSpot Contacts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get HubSpot Contacts": {
+      "main": [
+        [
+          {
+            "node": "Filter Valid Mixpanel IDs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Valid Mixpanel IDs": {
+      "main": [
+        [
+          {
+            "node": "Get Mixpanel Profile",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Mixpanel Profile": {
+      "main": [
+        [
+          {
+            "node": "Get Mixpanel Events",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Mixpanel Events": {
+      "main": [
+        [
+          {
+            "node": "Prepare HubSpot Updates",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare HubSpot Updates": {
+      "main": [
+        [
+          {
+            "node": "Update HubSpot Contacts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "92a1186d-1233-406b-8ba2-3c3648ed6119",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "b0d7e96a419793923052cce83491123b156aedf3b732f558d517d7aca045355d"
+  },
+  "id": "5fmPxnru4M68rnQq",
+  "tags": []
+}

@@ -1,0 +1,29 @@
+{
+  "timestamp": "2025-06-24T12:00:43.578Z",
+  "analysisTime": "28ms",
+  "workflow": {
+    "name": "Enhanced HubSpot-Mixpanel Integration with AI",
+    "nodes": 10,
+    "connections": 9,
+    "complexity": "Medium"
+  },
+  "validation": {
+    "connectionIssues": 0,
+    "orphanedNodes": 0,
+    "coverage": "10/10",
+    "status": "PASS"
+  },
+  "aiService": {
+    "available": false,
+    "tested": true
+  },
+  "performance": {
+    "totalNodes": 10,
+    "codeNodes": 4,
+    "httpNodes": 1,
+    "connections": 9,
+    "maxDepth": 8,
+    "complexity": "Medium"
+  },
+  "recommendations": []
+}

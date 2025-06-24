@@ -1,15 +1,12 @@
 {
-  "timestamp": "2025-06-21T12:40:29.919Z",
-  "passed": 7,
-  "total": 7,
-  "successRate": 100,
-  "components": [
-    "src/performance/concurrent-processor.ts",
-    "src/performance/database-io-optimizer.ts",
-    "src/performance/intelligent-cache-manager.ts",
-    "src/performance/buffer-pool-manager.ts",
-    "src/performance/async-workflow-pipeline.ts"
-  ],
-  "memoryUsageMB": 27,
-  "uptimeMs": 127
+  "timestamp": "2025-06-24T07:31:04.869Z",
+  "workflow": "Enhanced HubSpot-Mixpanel Integration with AI",
+  "validation": {
+    "totalNodes": 10,
+    "codeNodes": 4,
+    "connections": 9,
+    "coverage": "10/10",
+    "issues": 0,
+    "status": "PASS"
+  }
 }

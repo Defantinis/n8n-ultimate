@@ -1,0 +1,420 @@
+[
+  {
+    "vid": 13464,
+    "canonical-vid": 13464,
+    "merged-vids": [
+      3442163,
+      3438467,
+      13464
+    ],
+    "portal-id": 7870901,
+    "is-contact": true,
+    "properties": {
+      "firstname": {
+        "value": "Aiko"
+      },
+      "lastmodifieddate": {
+        "value": "1750757141814"
+      },
+      "mixpanel_customer_id": {
+        "value": "f908f951-a6ab-47e5-82cc-d84ce7c0767a"
+      },
+      "email": {
+        "value": "aiko@matchory.com"
+      },
+      "lastname": {
+        "value": "Wiegand"
+      }
+    },
+    "form-submissions": [
+      {
+        "conversion-id": "565dccf1-2f5c-494e-8de4-fa8dfb213fed",
+        "timestamp": 1744626714766,
+        "form-id": "232c7f0e-1cc1-47a4-acd3-1df9172c033b",
+        "portal-id": 7870901,
+        "page-url": "https://ray.matchory.com/login",
+        "page-title": "Databased Supplier Analytics | Matchory.com",
+        "title": "#login-form",
+        "form-type": "CAPTURED",
+        "contact-associated-by": [
+          "EMAIL"
+        ],
+        "meta-data": []
+      }
+    ],
+    "identity-profiles": [
+      {
+        "vid": 13464,
+        "saved-at-timestamp": 1744626715984,
+        "deleted-changed-timestamp": 0,
+        "identities": [
+          {
+            "type": "EMAIL",
+            "value": "aiko@matchory.com",
+            "timestamp": 1591717293824,
+            "is-primary": true
+          },
+          {
+            "type": "LEAD_GUID",
+            "value": "17dab8f3-f059-44c6-b1ce-2616d76e1185",
+            "timestamp": 1591717293828
+          }
+        ]
+      },
+      {
+        "vid": 3438467,
+        "saved-at-timestamp": 1744626715984,
+        "deleted-changed-timestamp": 0,
+        "identities": [
+          {
+            "type": "LEAD_GUID",
+            "value": "d769f91e-52ea-44ea-9728-b41c065f6242",
+            "timestamp": 1666697131814
+          }
+        ]
+      },
+      {
+        "vid": 3442163,
+        "saved-at-timestamp": 1744626715984,
+        "deleted-changed-timestamp": 0,
+        "identities": [
+          {
+            "type": "LEAD_GUID",
+            "value": "037abea4-9ad0-498f-b972-4dd2af49ccca",
+            "timestamp": 1666698632540
+          }
+        ]
+      },
+      {
+        "vid": 107862048058,
+        "saved-at-timestamp": 1744626715984,
+        "deleted-changed-timestamp": 0,
+        "identities": []
+      },
+      {
+        "vid": 58854785697,
+        "saved-at-timestamp": 1744626715984,
+        "deleted-changed-timestamp": 0,
+        "identities": []
+      },
+      {
+        "vid": 16251,
+        "saved-at-timestamp": 1744626715984,
+        "deleted-changed-timestamp": 0,
+        "identities": []
+      }
+    ],
+    "merge-audits": [
+      {
+        "canonical-vid": 13464,
+        "primary-vid-to-merge": 13464,
+        "vid-to-merge": 3442163,
+        "timestamp": 1667205652159,
+        "entity-id": "{\"authName\":\"app-cookie\",\"authLevel\":\"APP\",\"zkGroup\":null,\"internalCookieProto\":null,\"hubId\":7870901,\"userId\":47663172,\"appId\":null,\"originIpAddress\":\"2001:9e8:3188:2400:84ab:330a:7ea7:ad71\",\"loginId\":{\"email\":\"valerie@matchory.com\",\"authenticatedAtMillis\":1666853729356},\"correlationId\":\"a5398596-149b-4702-ac5d-65b235b7f3eb\",\"clientServiceName\":null,\"actingUserId\":null}",
+        "user-id": 47663172,
+        "num-properties-moved": 50,
+        "merged_to_email": {
+          "value": "aiko@matchory.com",
+          "source-type": "IMPORT",
+          "source-id": "9605815",
+          "source-label": null,
+          "updated-by-user-id": null,
+          "timestamp": 1591717293824,
+          "selected": false,
+          "data-sensitivity": null,
+          "is-encrypted": null
+        },
+        "first-name": "Aiko",
+        "last-name": "Wiegand",
+        "is-reverted": false
+      },
+      {
+        "canonical-vid": 13464,
+        "primary-vid-to-merge": 13464,
+        "vid-to-merge": 3438467,
+        "timestamp": 1667205502627,
+        "entity-id": "{\"authName\":\"app-cookie\",\"authLevel\":\"APP\",\"zkGroup\":null,\"internalCookieProto\":null,\"hubId\":7870901,\"userId\":47663172,\"appId\":null,\"originIpAddress\":\"2001:9e8:3188:2400:84ab:330a:7ea7:ad71\",\"loginId\":{\"email\":\"valerie@matchory.com\",\"authenticatedAtMillis\":1666853729356},\"correlationId\":\"87c12d53-025e-41ce-b914-56cc03b80e2f\",\"clientServiceName\":null,\"actingUserId\":null}",
+        "user-id": 47663172,
+        "num-properties-moved": 42,
+        "merged_to_email": {
+          "value": "aiko@matchory.com",
+          "source-type": "IMPORT",
+          "source-id": "9605815",
+          "source-label": null,
+          "updated-by-user-id": null,
+          "timestamp": 1591717293824,
+          "selected": false,
+          "data-sensitivity": null,
+          "is-encrypted": null
+        },
+        "first-name": "Aiko",
+        "last-name": "Wiegand",
+        "is-reverted": false
+      }
+    ],
+    "addedAt": 1591717293831
+  },
+  {
+    "vid": 28951,
+    "canonical-vid": 28951,
+    "merged-vids": [],
+    "portal-id": 7870901,
+    "is-contact": true,
+    "properties": {
+      "firstname": {
+        "value": "Ingo"
+      },
+      "lastmodifieddate": {
+        "value": "1750757141814"
+      },
+      "mixpanel_customer_id": {
+        "value": "dd2f9da3-dac3-4714-b312-e8763643674a"
+      },
+      "email": {
+        "value": "ingo.grosser@jungheinrich.de"
+      },
+      "lastname": {
+        "value": "Großer"
+      }
+    },
+    "form-submissions": [],
+    "identity-profiles": [
+      {
+        "vid": 28951,
+        "saved-at-timestamp": 1613757088822,
+        "deleted-changed-timestamp": 0,
+        "identities": [
+          {
+            "type": "EMAIL",
+            "value": "ingo.grosser@jungheinrich.de",
+            "timestamp": 1613757088782,
+            "is-primary": true
+          },
+          {
+            "type": "LEAD_GUID",
+            "value": "7adbac0b-38f9-49c5-a670-94f4e96b36d9",
+            "timestamp": 1613757088817
+          }
+        ]
+      }
+    ],
+    "merge-audits": [],
+    "addedAt": 1613757088822
+  },
+  {
+    "vid": 38001,
+    "canonical-vid": 38001,
+    "merged-vids": [
+      38001,
+      3441605,
+      3439514
+    ],
+    "portal-id": 7870901,
+    "is-contact": true,
+    "properties": {
+      "firstname": {
+        "value": "Julia"
+      },
+      "lastmodifieddate": {
+        "value": "1750679869740"
+      },
+      "mixpanel_customer_id": {
+        "value": "c9c45907-e05c-4f2a-ba73-fe35d6aeb8ce"
+      },
+      "email": {
+        "value": "julia.seifert@tesa.com"
+      },
+      "lastname": {
+        "value": "Seifert"
+      }
+    },
+    "form-submissions": [],
+    "identity-profiles": [
+      {
+        "vid": 38001,
+        "saved-at-timestamp": 1667205733934,
+        "deleted-changed-timestamp": 0,
+        "identities": [
+          {
+            "type": "EMAIL",
+            "value": "julia.seifert@tesa.com",
+            "timestamp": 1623340494753,
+            "is-primary": true
+          },
+          {
+            "type": "LEAD_GUID",
+            "value": "f73a391f-a74b-4834-bc71-61f579ce34d3",
+            "timestamp": 1623340494790
+          }
+        ]
+      },
+      {
+        "vid": 3441605,
+        "saved-at-timestamp": 1667205733934,
+        "deleted-changed-timestamp": 0,
+        "identities": [
+          {
+            "type": "LEAD_GUID",
+            "value": "a03d8083-de71-491c-9147-e7c654fba33f",
+            "timestamp": 1666698632303
+          }
+        ]
+      },
+      {
+        "vid": 3439514,
+        "saved-at-timestamp": 1667205733934,
+        "deleted-changed-timestamp": 0,
+        "identities": [
+          {
+            "type": "LEAD_GUID",
+            "value": "19e45123-69b2-475f-a1d4-8d51371c9b30",
+            "timestamp": 1666697131881
+          }
+        ]
+      }
+    ],
+    "merge-audits": [
+      {
+        "canonical-vid": 38001,
+        "primary-vid-to-merge": 38001,
+        "vid-to-merge": 3439514,
+        "timestamp": 1667205733934,
+        "entity-id": "{\"authName\":\"app-cookie\",\"authLevel\":\"APP\",\"zkGroup\":null,\"internalCookieProto\":null,\"hubId\":7870901,\"userId\":47663172,\"appId\":null,\"originIpAddress\":\"2001:9e8:3188:2400:84ab:330a:7ea7:ad71\",\"loginId\":{\"email\":\"valerie@matchory.com\",\"authenticatedAtMillis\":1666853729356},\"correlationId\":\"9f9a6f75-9971-4825-b20f-8c44feb60b19\",\"clientServiceName\":null,\"actingUserId\":null}",
+        "user-id": 47663172,
+        "num-properties-moved": 44,
+        "merged_to_email": {
+          "value": "julia.seifert@tesa.com",
+          "source-type": "CONTACTS",
+          "source-id": "userId:11034470",
+          "source-label": null,
+          "updated-by-user-id": 11034470,
+          "timestamp": 1623340494753,
+          "selected": false,
+          "data-sensitivity": null,
+          "is-encrypted": null
+        },
+        "first-name": "Julia",
+        "last-name": "Seifert",
+        "is-reverted": false
+      },
+      {
+        "canonical-vid": 38001,
+        "primary-vid-to-merge": 38001,
+        "vid-to-merge": 3441605,
+        "timestamp": 1667205652163,
+        "entity-id": "{\"authName\":\"app-cookie\",\"authLevel\":\"APP\",\"zkGroup\":null,\"internalCookieProto\":null,\"hubId\":7870901,\"userId\":47663172,\"appId\":null,\"originIpAddress\":\"2001:9e8:3188:2400:84ab:330a:7ea7:ad71\",\"loginId\":{\"email\":\"valerie@matchory.com\",\"authenticatedAtMillis\":1666853729356},\"correlationId\":\"a36ff1fc-0349-49d6-8a06-5213a34f20b6\",\"clientServiceName\":null,\"actingUserId\":null}",
+        "user-id": 47663172,
+        "num-properties-moved": 48,
+        "merged_to_email": {
+          "value": "julia.seifert@tesa.com",
+          "source-type": "CONTACTS",
+          "source-id": "userId:11034470",
+          "source-label": null,
+          "updated-by-user-id": 11034470,
+          "timestamp": 1623340494753,
+          "selected": false,
+          "data-sensitivity": null,
+          "is-encrypted": null
+        },
+        "first-name": "Julia",
+        "last-name": "Seifert",
+        "is-reverted": false
+      }
+    ],
+    "addedAt": 1623340494794
+  },
+  {
+    "vid": 48251,
+    "canonical-vid": 48251,
+    "merged-vids": [],
+    "portal-id": 7870901,
+    "is-contact": true,
+    "properties": {
+      "firstname": {
+        "value": "Jörn"
+      },
+      "lastmodifieddate": {
+        "value": "1750679870428"
+      },
+      "mixpanel_customer_id": {
+        "value": "388b8d29-e3dc-41cd-a81a-93fec2347d68"
+      },
+      "email": {
+        "value": "joern.geisel@huf-group.com"
+      },
+      "lastname": {
+        "value": "Geisel"
+      }
+    },
+    "form-submissions": [],
+    "identity-profiles": [
+      {
+        "vid": 48251,
+        "saved-at-timestamp": 1633364993983,
+        "deleted-changed-timestamp": 0,
+        "identities": [
+          {
+            "type": "EMAIL",
+            "value": "joern.geisel@huf-group.com",
+            "timestamp": 1633364993899,
+            "is-primary": true
+          },
+          {
+            "type": "LEAD_GUID",
+            "value": "c306a39a-8a8c-454e-a335-78b2f8131bd1",
+            "timestamp": 1633364993977
+          }
+        ]
+      }
+    ],
+    "merge-audits": [],
+    "addedAt": 1633364993983
+  },
+  {
+    "vid": 53901,
+    "canonical-vid": 53901,
+    "merged-vids": [],
+    "portal-id": 7870901,
+    "is-contact": true,
+    "properties": {
+      "firstname": {
+        "value": "Hans"
+      },
+      "lastmodifieddate": {
+        "value": "1750679870341"
+      },
+      "mixpanel_customer_id": {
+        "value": "c4882b1c-dcb9-42f9-bc05-fe1ab1a9d2da"
+      },
+      "email": {
+        "value": "boot@durchdenkenvorne.de"
+      },
+      "lastname": {
+        "value": "Boot"
+      }
+    },
+    "form-submissions": [],
+    "identity-profiles": [
+      {
+        "vid": 53901,
+        "saved-at-timestamp": 1637590245818,
+        "deleted-changed-timestamp": 0,
+        "identities": [
+          {
+            "type": "EMAIL",
+            "value": "boot@durchdenkenvorne.de",
+            "timestamp": 1637590245777,
+            "is-primary": true
+          },
+          {
+            "type": "LEAD_GUID",
+            "value": "db335f73-9fe4-402a-853a-a7c09b0ad522",
+            "timestamp": 1637590245798
+          }
+        ]
+      }
+    ],
+    "merge-audits": [],
+    "addedAt": 1637590245818
+  }
+] 

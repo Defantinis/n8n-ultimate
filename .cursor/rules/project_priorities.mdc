@@ -101,6 +101,10 @@ mcp_task-master-ai_get_task --id=<current-task-id>
 ## **n8n Workflow Specific Priorities**
 
 ### **Critical Success Factors:**
+- **Node Connection Methodology**: ALWAYS use node IDs, never names in connections
+- **Code Node Return Format**: MUST return `[{ json: {...} }]` format to avoid "Code doesn't return items properly"
+- **Modern Parameter Structure**: Use `code` parameter, not deprecated `jsCode`
+- **Node Reference Syntax**: Use `$('NodeName')` not deprecated `$node['NodeName']`
 - **Field Name Consistency**: #1 cause of workflow failures
 - **Progressive Testing**: Individual nodes → connections → end-to-end
 - **Complete HTTP Configuration**: Method, headers, parameters
@@ -192,6 +196,41 @@ CRITICAL ADDITION: Visual vs Structural Analysis
 6. **Testing Tools** - Integrate with existing framework
 
 ## **Emergency Procedures**
+
+### **🚨 CRITICAL: When n8n Workflows Fail (NEVER FORGET)**
+
+**"Code doesn't return items properly" Error:**
+1. **✅ CHECK**: Code node uses `code` parameter (not `jsCode`)
+2. **✅ CHECK**: Return format is `[{ json: {...} }]`
+3. **✅ CHECK**: No deprecated `$node['name']` syntax (use `$('name')`)
+4. **✅ FIX**: Update parameter structure and return format
+5. **✅ TEST**: Run validation script to confirm fixes
+
+**"Nodes are unlinked" Error:**
+1. **✅ FIRST**: Run automated testing script (`scripts/test-workflow-execution.js`)
+2. **✅ CHECK**: Connections use node IDs (not names) in JSON structure
+3. **✅ VALIDATE**: Each connection references existing node IDs
+4. **✅ DIAGNOSE**: Visual vs structural issue (UI display ≠ actual connections)
+5. **✅ EDUCATE**: Explain to user that workflow functionality is intact
+
+**Connection Validation Checklist:**
+```javascript
+// ✅ MANDATORY: Always validate connections this way
+const nodeMap = new Map();
+workflow.nodes.forEach(node => nodeMap.set(node.id, node));
+
+Object.entries(workflow.connections).forEach(([sourceId, connections]) => {
+    const sourceNode = nodeMap.get(sourceId);
+    if (!sourceNode) console.log(`❌ Source node missing: ${sourceId}`);
+    
+    connections.main?.forEach(group => {
+        group.forEach(conn => {
+            const targetNode = nodeMap.get(conn.node);
+            if (!targetNode) console.log(`❌ Target node missing: ${conn.node}`);
+        });
+    });
+});
+```
 
 ### **When Context is Lost:**
 1. **Task Master**: `mcp_task-master-ai_get_tasks` to understand state

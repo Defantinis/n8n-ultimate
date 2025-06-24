@@ -369,10 +369,14 @@ mcp_task-master-ai_get_task --id=<last-active-task>
 
 ### **When Things Break**
 1. **Immediate**: Run `WorkflowValidator`, `DataFlowValidator`, and `ErrorClassifier` from `src/` to diagnose the issue. Use n8n debugging methodology from rules as a fallback.
-2. **Document**: Log in Task Master with full context from the tool outputs.
-3. **Fix**: Apply systematic 5-phase approach, using `WorkflowGenerator` to implement fixes.
-4. **Verify**: Use the `RealWorldTestingFramework` to test the fix thoroughly.
-5. **Learn**: Update rules with new patterns discovered.
+2. **n8n Critical Checks**: 
+   - **Code Nodes**: Verify `code` parameter (not `jsCode`) and `[{ json: {...} }]` return format
+   - **Connections**: Validate using node IDs (not names) with automated testing scripts
+   - **Syntax**: Check for deprecated `$node['name']` patterns (use `$('name')`)
+3. **Document**: Log in Task Master with full context from the tool outputs.
+4. **Fix**: Apply systematic 5-phase approach, using `WorkflowGenerator` to implement fixes.
+5. **Verify**: Use the `RealWorldTestingFramework` to test the fix thoroughly.
+6. **Learn**: Update rules with new patterns discovered.
 
 ### **When Context is Lost**
 1. **Task Master**: `get_tasks` to understand current state.

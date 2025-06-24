@@ -15,7 +15,34 @@ This rule establishes the systematic 5-phase debugging approach for n8n workflow
 - **Graceful Degradation**: Always include comprehensive error handling
 - **Visual vs Structural Validation**: n8n UI display issues don't indicate actual connection problems
 
-## **Critical Discovery: n8n Visual Linking vs JSON Structure**
+## **CRITICAL: n8n Node Connection Methodology (NEVER FORGET)**
+
+### **✅ MANDATORY CONNECTION PATTERNS**
+
+**How n8n Connections Actually Work:**
+```json
+{
+  "connections": {
+    "SOURCE_NODE_ID": {
+      "main": [
+        [
+          {
+            "node": "TARGET_NODE_ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}
+```
+
+**CRITICAL RULES:**
+1. **ALWAYS use node IDs, NEVER node names** in connections
+2. **Each node MUST have a unique ID** (UUID format)
+3. **Connections reference the "id" field**, not "name" field
+4. **Visual display ≠ actual connections** - UI can lie, JSON doesn't
 
 ### **✅ ESTABLISHED PATTERN: Visual Display Issues Are Cosmetic**
 Based on comprehensive testing (January 2025), when users report "nodes are unlinked" in n8n:
@@ -25,18 +52,85 @@ Based on comprehensive testing (January 2025), when users report "nodes are unli
 - **Structural Reality**: JSON connections are properly defined using node IDs
 - **False Alarm**: Workflow functionality remains intact despite visual appearance
 
-**Diagnostic Approach:**
+**Connection Validation Pattern:**
 ```javascript
-// ✅ DO: Create automated connection validation
-// Use comprehensive testing script to verify:
-// 1. All nodes have proper IDs
-// 2. Connections reference correct node IDs (not names)
-// 3. Execution flow traces correctly from trigger to completion
-// 4. No actual structural issues exist
+// ✅ DO: Validate connections using node IDs
+const nodeMap = new Map();
+workflow.nodes.forEach(node => {
+    nodeMap.set(node.id, node);
+});
+
+// Check each connection references valid node IDs
+Object.entries(workflow.connections).forEach(([sourceId, connections]) => {
+    const sourceNode = nodeMap.get(sourceId);
+    if (!sourceNode) {
+        console.log(`❌ Source node not found: ${sourceId}`);
+        return;
+    }
+    
+    connections.main?.forEach(connectionGroup => {
+        connectionGroup.forEach(connection => {
+            const targetNode = nodeMap.get(connection.node);
+            if (!targetNode) {
+                console.log(`❌ Target node not found: ${connection.node}`);
+            } else {
+                console.log(`✅ ${sourceNode.name} → ${targetNode.name}`);
+            }
+        });
+    });
+});
 
 // ❌ DON'T: Assume visual = structural problem
 // Don't rebuild workflows based on UI display alone
 // Don't panic when connections appear unlinked visually
+```
+
+### **✅ CONNECTION CREATION PATTERNS**
+
+**When Adding New Connections:**
+```json
+// ✅ DO: Use proper node ID structure
+"connections": {
+  "e1cb4471-9ecd-41cf-8967-42b0e7151548": {
+    "main": [
+      [
+        {
+          "node": "1124e4b4-8f06-4a46-a53e-fe6cad1f3ee7",
+          "type": "main", 
+          "index": 0
+        }
+      ]
+    ]
+  }
+}
+
+// ❌ DON'T: Use node names
+"connections": {
+  "Workflow Config": {  // WRONG - this is a name, not ID
+    "main": [...]
+  }
+}
+```
+
+**Multiple Output Connections:**
+```json
+// ✅ DO: Multiple targets from one source
+"ab87b45a-3c76-4966-9c1b-db5d6c17c8f9": {
+  "main": [
+    [
+      {
+        "node": "01428357-7f55-4474-8f73-aef1d7799cd5",
+        "type": "main",
+        "index": 0
+      },
+      {
+        "node": "f332c233-2c0c-4538-b017-406a052854d2", 
+        "type": "main",
+        "index": 0
+      }
+    ]
+  ]
+}
 ```
 
 **Validation Pattern:**
@@ -209,36 +303,110 @@ curl -X POST http://localhost:3000/summarize-error \
 }
 ```
 
+## **✅ CRITICAL: Code Node Return Format (NEVER FORGET)**
+
+### **✅ MANDATORY: Proper Code Node Return Structure**
+
+**The #1 Cause of "Code doesn't return items properly" Error:**
+```javascript
+// ❌ WRONG: Basic return (causes error)
+return $input.all();
+
+// ❌ WRONG: Direct object return (causes error)  
+return { data: processedData };
+
+// ✅ CORRECT: Array of objects with json property
+return [{ 
+  json: {
+    processed_data: result,
+    timestamp: new Date().toISOString(),
+    // ... your data here
+  }
+}];
+
+// ✅ CORRECT: Multiple items
+return processedItems.map(item => ({
+  json: {
+    ...item,
+    processed: true
+  }
+}));
+```
+
+### **✅ CRITICAL: Modern n8n Code Node Parameters**
+
+**Parameter Evolution (CRITICAL TO REMEMBER):**
+```json
+// ❌ OLD (n8n < 1.0): Causes "Code doesn't return items properly"
+{
+  "parameters": {
+    "jsCode": "// old parameter name"
+  }
+}
+
+// ✅ NEW (n8n 1.0+): Modern parameter structure
+{
+  "parameters": {
+    "code": "// modern parameter name"
+  }
+}
+```
+
+### **✅ CRITICAL: Node Reference Syntax Updates**
+
+**Syntax Evolution (CAUSES CONNECTION FAILURES):**
+```javascript
+// ❌ DEPRECATED (causes "Cannot read properties of undefined"):
+const data = $node['Node Name'].json;
+const config = $node['Workflow Config'].json.setting;
+
+// ✅ MODERN (works in all n8n versions):
+const data = $('Node Name').json;
+const config = $('Workflow Config').json.setting;
+```
+
 ## **Error Handling Patterns**
 
 ### **✅ DO: Comprehensive Error Handling**
 ```javascript
-// In Function nodes
+// In Code nodes - ALWAYS return proper format
 try {
-  const result = items.map(item => {
+  const processedData = [];
+  
+  for (const item of $input.all()) {
     const data = item.json;
     
     // Validate required fields
     if (!data.customer_id) {
-      return { 
-        error: 'Missing customer_id',
-        original_data: data 
-      };
+      processedData.push({
+        json: {
+          error: 'Missing customer_id',
+          original_data: data,
+          timestamp: new Date().toISOString()
+        }
+      });
+      continue;
     }
     
     // Process data
-    return { 
-      processed: true,
-      customer_id: data.customer_id,
-      result: processData(data)
-    };
-  });
+    processedData.push({
+      json: {
+        processed: true,
+        customer_id: data.customer_id,
+        result: processData(data),
+        timestamp: new Date().toISOString()
+      }
+    });
+  }
   
-  return result;
+  return processedData;
 } catch (error) {
-  return [{ 
-    error: error.message,
-    timestamp: new Date().toISOString()
+  return [{
+    json: {
+      error: error.message,
+      timestamp: new Date().toISOString(),
+      stack: error.stack
+    }
   }];
 }
 ```
